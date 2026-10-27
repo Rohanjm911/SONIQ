@@ -84,6 +84,8 @@ public:
     void setPreference(const std::string& key, const std::string& value);
     [[nodiscard]] std::string getPreference(const std::string& key, const std::string& defaultValue = "");
 
+    QSqlDatabase getDatabase() const;
+
 private:
     DatabaseManager();
     ~DatabaseManager();
@@ -92,6 +94,8 @@ private:
 
     QSqlDatabase m_db;
     QString m_connectionName;
+    QString m_dbPath;
+    Qt::HANDLE m_mainThreadId{nullptr};
     mutable std::mutex m_mutex;
 };
 

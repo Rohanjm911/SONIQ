@@ -2,10 +2,15 @@
 #include "database/DatabaseManager.hpp"
 #include "audio/PlaybackQueue.hpp"
 #include "audio/AudioPlaybackEngine.hpp"
+#include "library/LibraryScanner.hpp"
+#include "services/LibraryModel.hpp"
+#include <QCoreApplication>
 #include <cassert>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <thread>
+#include <chrono>
 
 using namespace soniq;
 
@@ -143,6 +148,80 @@ void testEngineGaplessAndCrossfadeConfiguration() {
     std::cout << "  -> Engine gapless & crossfade controls PASSED." << std::endl;
 }
 
+static void createSampleWav(const std::filesystem::path& path) {
+    std::ofstream out(path, std::ios::binary);
+    assert(out.is_open());
+    const char header[44] = {
+        'R', 'I', 'F', 'F',
+        36, 0, 0, 0,
+        'W', 'A', 'V', 'E',
+        'f', 'm', 't', ' ',
+        16, 0, 0, 0,
+        1, 0, // PCM
+        2, 0, // 2 channels
+        0x44, static_cast<char>(0xAC), 0, 0, // 44100
+        0x10, static_cast<char>(0xB1), 0x02, 0, // 176400
+        4, 0, // block align
+        16, 0, // 16-bit
+        'd', 'a', 't', 'a',
+        0, 0, 0, 0 // 0 bytes data
+    };
+    out.write(header, 44);
+    out.close();
+}
+
+void testLibraryScannerAndWorkerThread() {
+    std::cout << "Testing LibraryScanner folder scanning with spaces & worker thread SQLite..." << std::endl;
+
+    namespace fs = std::filesystem;
+    std::string testDbPath = "test_scanner_db.db";
+    if (fs::exists(testDbPath)) {
+        fs::remove(testDbPath);
+    }
+    auto& db = db::DatabaseManager::instance();
+    db.close();
+    bool dbOk = db.initialize(QString::fromStdString(testDbPath));
+    assert(dbOk && "Database initialization failed for scanner test");
+
+    fs::path tempDir = fs::temp_directory_path() / "soniq_scanner_test_dir with spaces";
+    fs::create_directories(tempDir / "nested folder");
+
+    fs::path wav1 = tempDir / "track 01.wav";
+    fs::path wav2 = tempDir / "nested folder" / "track 02.wav";
+    createSampleWav(wav1);
+    createSampleWav(wav2);
+
+    soniq::library::LibraryScanner scanner;
+    soniq::services::LibraryModel model;
+
+    QObject::connect(&scanner, &soniq::library::LibraryScanner::scanFinished,
+                     &model, &soniq::services::LibraryModel::refresh);
+
+    scanner.scanDirectory(QString::fromStdWString(tempDir.wstring()));
+
+    // Wait for scanning to finish (runs on worker thread)
+    int waitMs = 0;
+    while (scanner.isScanning() && waitMs < 5000) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        waitMs += 50;
+        QCoreApplication::processEvents();
+    }
+
+    assert(!scanner.isScanning() && "Scanner should finish within 5 seconds");
+    assert(scanner.scannedCount() >= 2 && "Should have scanned at least 2 files");
+
+    model.refresh();
+    assert(model.rowCount() >= 2 && "LibraryModel should contain scanned tracks");
+
+    // Clean up temporary test files & db
+    std::error_code ec;
+    fs::remove_all(tempDir, ec);
+    db.close();
+    fs::remove(testDbPath, ec);
+
+    std::cout << "  -> LibraryScanner & multi-threaded SQLite integration PASSED." << std::endl;
+}
+
 void runArtworkAndGaplessTests() {
     std::cout << "========================================" << std::endl;
     std::cout << " RUNNING ARTWORK & GAPLESS TEST SUITE   " << std::endl;
@@ -152,8 +231,9 @@ void runArtworkAndGaplessTests() {
     testQueueLookaheadMethods();
     testDatabaseArtworkPersistence();
     testEngineGaplessAndCrossfadeConfiguration();
+    testLibraryScannerAndWorkerThread();
 
     std::cout << "========================================" << std::endl;
-    std::cout << " ALL ARTWORK & GAPLESS TESTS PASSED (4/4)" << std::endl;
+    std::cout << " ALL ARTWORK & GAPLESS TESTS PASSED (5/5)" << std::endl;
     std::cout << "========================================" << std::endl;
 }

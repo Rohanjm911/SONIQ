@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <QUrl>
 #include <QDir>
+#include <QFileInfo>
 
 namespace soniq::library {
 
@@ -28,10 +29,13 @@ void LibraryScanner::cancel() {
 }
 
 void LibraryScanner::scanDirectory(const QString& directoryPath) {
-    if (m_scanning) return;
+    if (m_scanning) {
+        SONIQ_LOG_WARN("Scan already in progress, ignoring duplicate request.");
+        return;
+    }
 
-    QString cleanPath = directoryPath;
-    QUrl url(directoryPath);
+    QString cleanPath = directoryPath.trimmed();
+    QUrl url(cleanPath);
     if (url.isValid() && (url.isLocalFile() || url.scheme() == "file")) {
         cleanPath = url.toLocalFile();
     } else {
@@ -41,13 +45,27 @@ void LibraryScanner::scanDirectory(const QString& directoryPath) {
     }
 
     cleanPath = QDir::cleanPath(cleanPath);
+    if (cleanPath.startsWith('/') && cleanPath.length() >= 3 && cleanPath[2] == ':') {
+        cleanPath = cleanPath.mid(1);
+    }
     cleanPath = QDir::toNativeSeparators(cleanPath);
+
+    QFileInfo fi(cleanPath);
+    if (!fi.exists() || !fi.isDir()) {
+        SONIQ_LOG_ERROR("Target scan directory does not exist or is not a directory: {}", cleanPath.toStdString());
+        return;
+    }
+
     SONIQ_LOG_INFO("Starting library scan for directory: {}", cleanPath.toStdString());
 
     cancel();
     m_scanning = true;
     m_cancelRequested = false;
+    m_currentCount = 0;
+    m_totalCount = 0;
+    m_currentFile.clear();
     emit scanningChanged();
+    emit scanProgressChanged();
 
     m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, cleanPath);
 }
@@ -75,14 +93,21 @@ void LibraryScanner::doScan(const QString& path) {
     }
 
     const int total = static_cast<int>(audioFiles.size());
+    m_totalCount = total;
     int addedCount = 0;
     SONIQ_LOG_INFO("Discovered {} potential audio files to scan in: {}", total, path.toStdString());
+    emit scanProgressChanged();
 
     for (int i = 0; i < total; ++i) {
         if (m_cancelRequested) break;
 
-        const auto& filePath = audioFiles[i].string();
-        emit scanProgress(i + 1, total, QString::fromStdString(filePath));
+        m_currentCount = i + 1;
+        QString qFilePath = QString::fromStdWString(audioFiles[i].wstring());
+        std::string filePath = qFilePath.toStdString();
+        m_currentFile = qFilePath;
+
+        emit scanProgress(i + 1, total, qFilePath);
+        emit scanProgressChanged();
 
         auto inspection = metadata::AudioProbe::probeFile(filePath);
         if (inspection.success) {
@@ -114,6 +139,7 @@ void LibraryScanner::doScan(const QString& path) {
     m_scanning = false;
     emit scanningChanged();
     emit scanFinished(addedCount, total);
+    SONIQ_LOG_INFO("Scan finished: added {} of {} audio files.", addedCount, total);
 }
 
 } // namespace soniq::library

@@ -2,6 +2,9 @@
 #include "core/Logger.hpp"
 #include <QStandardPaths>
 #include <QDir>
+#include <QProcess>
+#include <QFile>
+#include <QFileInfo>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -36,12 +39,12 @@ std::string ArtworkExtractor::cacheDirectory() const {
 }
 
 std::string ArtworkExtractor::generateCacheKey(const std::string& audioFilePath) const {
-    // Combine file path and file size to generate a unique cache key
     std::hash<std::string> hasher;
     size_t hashVal = hasher(audioFilePath);
 
     std::error_code ec;
-    uintmax_t sz = std::filesystem::file_size(audioFilePath, ec);
+    std::filesystem::path p(QString::fromStdString(audioFilePath).toStdWString());
+    uintmax_t sz = std::filesystem::file_size(p, ec);
     hashVal ^= std::hash<uintmax_t>{}(sz) + 0x9e3779b9 + (hashVal << 6) + (hashVal >> 2);
 
     std::ostringstream ss;
@@ -50,7 +53,9 @@ std::string ArtworkExtractor::generateCacheKey(const std::string& audioFilePath)
 }
 
 bool ArtworkExtractor::extractFlacPicture(const std::string& flacPath, const std::string& outImagePath) {
-    std::ifstream file(flacPath, std::ios::binary);
+    namespace fs = std::filesystem;
+    fs::path p(QString::fromStdString(flacPath).toStdWString());
+    std::ifstream file(p, std::ios::binary);
     if (!file.is_open()) return false;
 
     char magic[4];
@@ -70,15 +75,6 @@ bool ArtworkExtractor::extractFlacPicture(const std::string& flacPath, const std
                              static_cast<uint32_t>(header[3]);
 
         if (blockType == 6) { // METADATA_BLOCK_PICTURE
-            // Format:
-            // 4 bytes: picture type
-            // 4 bytes: MIME type length
-            // N bytes: MIME type
-            // 4 bytes: description length
-            // M bytes: description
-            // 4 bytes: width, 4 bytes: height, 4 bytes: color depth, 4 bytes: indexed colors
-            // 4 bytes: picture data length
-            // L bytes: picture data
             uint32_t picType = 0;
             file.read(reinterpret_cast<char*>(&picType), 4);
 
@@ -132,71 +128,57 @@ bool ArtworkExtractor::extractFlacPicture(const std::string& flacPath, const std
 }
 
 bool ArtworkExtractor::extractId3v2Picture(const std::string& mp3Path, const std::string& outImagePath) {
-    std::ifstream file(mp3Path, std::ios::binary);
+    namespace fs = std::filesystem;
+    fs::path p(QString::fromStdString(mp3Path).toStdWString());
+    std::ifstream file(p, std::ios::binary);
     if (!file.is_open()) return false;
 
-    char tag[3];
-    file.read(tag, 3);
-    if (std::memcmp(tag, "ID3", 3) != 0) return false;
+    char header[10];
+    file.read(header, 10);
+    if (std::memcmp(header, "ID3", 3) != 0) return false;
 
-    uint8_t version[2];
-    file.read(reinterpret_cast<char*>(version), 2);
-    uint8_t flags = 0;
-    file.read(reinterpret_cast<char*>(&flags), 1);
+    // Synchsafe integer decoder for ID3v2 total tag size
+    uint32_t tagSize = ((header[6] & 0x7F) << 21) |
+                       ((header[7] & 0x7F) << 14) |
+                       ((header[8] & 0x7F) << 7)  |
+                       (header[9] & 0x7F);
 
-    uint8_t sizeBytes[4];
-    file.read(reinterpret_cast<char*>(sizeBytes), 4);
-    // Synchsafe integer
-    uint32_t tagSize = ((sizeBytes[0] & 0x7F) << 21) |
-                       ((sizeBytes[1] & 0x7F) << 14) |
-                       ((sizeBytes[2] & 0x7F) << 7) |
-                       (sizeBytes[3] & 0x7F);
-
-    uint32_t bytesRead = 0;
+    size_t bytesRead = 0;
     while (bytesRead < tagSize && file.good()) {
-        char frameId[4];
-        file.read(frameId, 4);
-        bytesRead += 4;
-        if (!file.good() || frameId[0] == 0) break;
+        char frameHeader[10];
+        file.read(frameHeader, 10);
+        if (!file.good()) break;
+        bytesRead += 10;
 
-        uint8_t frameSizeBytes[4];
-        file.read(reinterpret_cast<char*>(frameSizeBytes), 4);
-        bytesRead += 4;
+        // Check for padding (null frame ID)
+        if (frameHeader[0] == 0) break;
 
-        uint32_t frameSize = 0;
-        if (version[0] == 4) { // ID3v2.4 synchsafe
-            frameSize = ((frameSizeBytes[0] & 0x7F) << 21) |
-                        ((frameSizeBytes[1] & 0x7F) << 14) |
-                        ((frameSizeBytes[2] & 0x7F) << 7) |
-                        (frameSizeBytes[3] & 0x7F);
-        } else {
-            frameSize = (static_cast<uint32_t>(frameSizeBytes[0]) << 24) |
-                        (static_cast<uint32_t>(frameSizeBytes[1]) << 16) |
-                        (static_cast<uint32_t>(frameSizeBytes[2]) << 8) |
-                        static_cast<uint32_t>(frameSizeBytes[3]);
-        }
+        std::string frameId(frameHeader, 4);
+        uint32_t frameSize = (static_cast<uint8_t>(frameHeader[4]) << 24) |
+                             (static_cast<uint8_t>(frameHeader[5]) << 16) |
+                             (static_cast<uint8_t>(frameHeader[6]) << 8)  |
+                             static_cast<uint8_t>(frameHeader[7]);
 
-        uint8_t frameFlags[2];
-        file.read(reinterpret_cast<char*>(frameFlags), 2);
-        bytesRead += 2;
+        if (frameSize == 0 || frameSize > 50 * 1024 * 1024) break;
 
-        if (std::memcmp(frameId, "APIC", 4) == 0 && frameSize > 10 && frameSize < 50 * 1024 * 1024) {
+        if (frameId == "APIC") { // Attached picture
             std::vector<char> frameData(frameSize);
             file.read(frameData.data(), frameSize);
+            bytesRead += frameSize;
 
-            // APIC payload:
-            // 1 byte text encoding
-            // MIME type (null terminated)
-            // 1 byte picture type
-            // Description (null terminated)
-            // Binary image data
-            size_t pos = 1;
-            while (pos < frameSize && frameData[pos] != 0) pos++;
-            pos++; // skip null
-            pos++; // skip picture type
-            while (pos < frameSize && frameData[pos] != 0) pos++;
-            pos++; // skip description null
+            if (frameSize < 5) return false;
 
+            size_t pos = 1; // skip encoding byte
+            while (pos < frameSize && frameData[pos] != 0) pos++; // skip MIME
+            pos++; // skip null terminator
+            if (pos >= frameSize) return false;
+
+            pos++; // skip picture type (1 byte)
+            while (pos < frameSize && frameData[pos] != 0) pos++; // skip description
+            pos++; // skip null terminator
+            if (pos >= frameSize) return false;
+
+            // Raw image bytes remain
             if (pos < frameSize) {
                 size_t imageBytes = frameSize - pos;
                 std::ofstream out(outImagePath, std::ios::binary);
@@ -216,23 +198,26 @@ bool ArtworkExtractor::extractId3v2Picture(const std::string& mp3Path, const std
 }
 
 bool ArtworkExtractor::extractViaFfmpeg(const std::string& audioPath, const std::string& outImagePath) {
-    namespace fs = std::filesystem;
-    std::string ffmpegExe = "C:\\ffmpeg\\ffmpeg.exe";
-    std::error_code ec;
-    if (!fs::exists(ffmpegExe, ec)) {
+    QString ffmpegExe = "C:/ffmpeg/ffmpeg.exe";
+    if (!QFile::exists(ffmpegExe)) {
         ffmpegExe = "ffmpeg";
     }
 
-    std::string cmd = std::format("\"{}\" -v quiet -y -i \"{}\" -an -vcodec copy \"{}\"",
-                                  ffmpegExe, audioPath, outImagePath);
-#if defined(_WIN32)
-    int ret = _wsystem(std::wstring(cmd.begin(), cmd.end()).c_str());
-#else
-    int ret = system(cmd.c_str());
-#endif
+    QProcess proc;
+    proc.start(ffmpegExe, QStringList{
+        "-v", "quiet",
+        "-y",
+        "-i", QString::fromStdString(audioPath),
+        "-an",
+        "-vcodec", "copy",
+        QString::fromStdString(outImagePath)
+    });
 
-    if (ret == 0 && fs::exists(outImagePath, ec) && fs::file_size(outImagePath, ec) > 100) {
-        return true;
+    if (proc.waitForFinished(5000) && proc.exitCode() == 0) {
+        QFileInfo fi(QString::fromStdString(outImagePath));
+        if (fi.exists() && fi.size() > 100) {
+            return true;
+        }
     }
     return false;
 }
@@ -240,7 +225,8 @@ bool ArtworkExtractor::extractViaFfmpeg(const std::string& audioPath, const std:
 std::string ArtworkExtractor::getOrExtractArtwork(const std::string& audioFilePath) {
     namespace fs = std::filesystem;
     std::error_code ec;
-    if (!fs::exists(audioFilePath, ec)) return "";
+    fs::path p(QString::fromStdString(audioFilePath).toStdWString());
+    if (!fs::exists(p, ec)) return "";
 
     std::string key = generateCacheKey(audioFilePath);
     std::string cachedPath = m_cacheDir + "/" + key + ".jpg";
@@ -250,7 +236,7 @@ std::string ArtworkExtractor::getOrExtractArtwork(const std::string& audioFilePa
     }
 
     // Try format-specific direct extraction first
-    std::string ext = fs::path(audioFilePath).extension().string();
+    std::string ext = p.extension().string();
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
     bool ok = false;

@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <QProcess>
+#include <QFile>
+#include <QFileInfo>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -31,7 +34,9 @@ bool AudioProbe::isFormatSupported(const std::string& extensionOrCodec) noexcept
 }
 
 static bool probeWavHeader(const std::string& filePath, AudioInspectionResult& res) {
-    std::ifstream f(filePath, std::ios::binary);
+    namespace fs = std::filesystem;
+    fs::path p(QString::fromStdString(filePath).toStdWString());
+    std::ifstream f(p, std::ios::binary);
     if (!f.is_open()) return false;
 
     char riff[4];
@@ -77,21 +82,25 @@ static bool probeWavHeader(const std::string& filePath, AudioInspectionResult& r
                 sFmt = core::SampleFormat::Float32;
             }
 
-            res.format = core::AudioFormat(sampleRate, numChannels, bitsPerSample, sFmt,
-                                           numChannels == 1 ? core::ChannelLayout::Mono : core::ChannelLayout::Stereo,
-                                           "PCM", "WAV", (byteRate * 8) / 1000);
-            res.containerFormat = "WAV (RIFF)";
-            res.codecLongName = (audioFormat == 3) ? "IEEE Float 32-bit PCM" : std::format("Linear PCM {}-bit", bitsPerSample);
+            core::ChannelLayout layout = (numChannels == 1) ? core::ChannelLayout::Mono : core::ChannelLayout::Stereo;
+            uint32_t bitrate = byteRate * 8 / 1000;
+
+            res.format = core::AudioFormat(sampleRate, numChannels, bitsPerSample, sFmt, layout, "PCM", ".wav", bitrate);
             res.isLossless = true;
             res.isHiRes = (sampleRate > 48000 || bitsPerSample > 16);
+            res.containerFormat = "WAV / RIFF";
+            res.codecLongName = (audioFormat == 3) ? "PCM IEEE Floating-Point" : "PCM Uncompressed Integer";
+            res.bitRate = byteRate * 8;
 
-            // Skip remaining fmt bytes if any
             if (chunkSize > 16) {
                 f.seekg(chunkSize - 16, std::ios::cur);
             }
         } else if (std::memcmp(chunkId, "data", 4) == 0) {
-            if (res.format.bytesPerSecond() > 0) {
-                res.metadata.durationSeconds = static_cast<double>(chunkSize) / static_cast<double>(res.format.bytesPerSecond());
+            if (res.format.sampleRate() > 0 && res.format.channels() > 0 && res.format.bitDepth() > 0) {
+                uint32_t bytesPerSec = res.format.sampleRate() * res.format.channels() * (res.format.bitDepth() / 8);
+                if (bytesPerSec > 0) {
+                    res.metadata.durationSeconds = static_cast<double>(chunkSize) / bytesPerSec;
+                }
             }
             break;
         } else {
@@ -109,18 +118,21 @@ AudioInspectionResult AudioProbe::probeFile(const std::string& filePath) {
 
     namespace fs = std::filesystem;
     std::error_code ec;
-    if (!fs::exists(filePath, ec) || !fs::is_regular_file(filePath, ec)) {
+    fs::path fsPath(QString::fromStdString(filePath).toStdWString());
+    if (!fs::exists(fsPath, ec) || !fs::is_regular_file(fsPath, ec)) {
         result.warnings.push_back("File does not exist or is not a regular file");
         return result;
     }
 
-    result.metadata.fileSize = fs::file_size(filePath, ec);
-    std::string ext = fs::path(filePath).extension().string();
+    result.metadata.fileSize = fs::file_size(fsPath, ec);
+    std::string ext = fsPath.extension().string();
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+    QFileInfo fileInfo(QString::fromStdString(filePath));
 
     // Fast-path: Header inspection for WAV
     if (ext == ".wav" && probeWavHeader(filePath, result)) {
-        result.metadata.title = fs::path(filePath).stem().string();
+        result.metadata.title = fileInfo.baseName().toStdString();
         result.isBitPerfectEligible = result.isLossless;
         result.bitPerfectAssessment = result.isLossless
             ? "Eligible: Uncompressed lossless PCM format. Can be delivered bit-perfect via Exclusive WASAPI."
@@ -132,35 +144,26 @@ AudioInspectionResult AudioProbe::probeFile(const std::string& filePath) {
     }
 
     // FFprobe execution for comprehensive metadata and all other formats
-    std::string ffprobeCmd = "C:\\ffmpeg\\ffprobe.exe";
-    if (!fs::exists(ffprobeCmd, ec)) {
+    QString ffprobeCmd = "C:/ffmpeg/ffprobe.exe";
+    if (!QFile::exists(ffprobeCmd)) {
         ffprobeCmd = "ffprobe";
     }
 
-    // Build command: ffprobe -v quiet -print_format json -show_format -show_streams "filePath"
-    std::string cmd = std::format("\"{}\" -v quiet -print_format json -show_format -show_streams \"{}\"", ffprobeCmd, filePath);
+    QProcess probeProc;
+    probeProc.start(ffprobeCmd, QStringList{
+        "-v", "quiet",
+        "-print_format", "json",
+        "-show_format",
+        "-show_streams",
+        QString::fromStdString(filePath)
+    });
 
     std::string jsonOutput;
-#if defined(_WIN32)
-    FILE* pipe = _popen(cmd.c_str(), "r");
-#else
-    FILE* pipe = popen(cmd.c_str(), "r");
-#endif
-
-    if (pipe) {
-        char buffer[1024];
-        while (fgets(buffer, sizeof(buffer), pipe)) {
-            jsonOutput += buffer;
-        }
-#if defined(_WIN32)
-        _pclose(pipe);
-#else
-        pclose(pipe);
-#endif
+    if (probeProc.waitForFinished(5000) && probeProc.exitCode() == 0) {
+        jsonOutput = probeProc.readAllStandardOutput().toStdString();
     }
 
     if (!jsonOutput.empty()) {
-        // Parse essential fields from JSON output without heavy external dependencies
         auto extractStr = [&](std::string_view key) -> std::string {
             std::string pattern = std::format("\"{}\": \"", key);
             size_t pos = jsonOutput.find(pattern);
@@ -207,7 +210,7 @@ AudioInspectionResult AudioProbe::probeFile(const std::string& filePath) {
         std::string genre = extractStr("genre");
         std::string date = extractStr("date");
 
-        if (title.empty()) title = fs::path(filePath).stem().string();
+        if (title.empty()) title = fileInfo.baseName().toStdString();
 
         uint32_t year = 0;
         try {
@@ -249,8 +252,8 @@ AudioInspectionResult AudioProbe::probeFile(const std::string& filePath) {
 
         result.success = true;
     } else {
-        // Fallback default
-        result.metadata.title = fs::path(filePath).stem().string();
+        // Fallback default for any discovered audio file
+        result.metadata.title = fileInfo.baseName().toStdString();
         result.metadata.artist = "Unknown Artist";
         result.metadata.album = "Unknown Album";
         result.format = core::AudioFormat(44100, 2, 16, core::SampleFormat::Float32,

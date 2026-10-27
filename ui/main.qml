@@ -75,7 +75,9 @@ ApplicationWindow {
                         anchors.centerIn: parent
                         spacing: 8
                         Text {
-                            text: "Scanning music library..."
+                            text: libraryScanner.totalCount > 0 ?
+                                  ("Scanning music library... (" + libraryScanner.scannedCount + " / " + libraryScanner.totalCount + ")") :
+                                  "Scanning music library..."
                             font.family: Typography.fontFamily
                             font.pixelSize: Typography.sizeCaption
                             color: Colors.textPrimary

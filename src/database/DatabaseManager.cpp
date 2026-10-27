@@ -4,6 +4,7 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QDateTime>
+#include <QThread>
 
 namespace soniq::db {
 
@@ -20,7 +21,10 @@ DatabaseManager::~DatabaseManager() {
 }
 
 bool DatabaseManager::initialize(const QString& dbPath) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (m_db.isOpen()) return true;
+
+    m_mainThreadId = QThread::currentThreadId();
 
     QString finalPath = dbPath;
     if (finalPath.isEmpty()) {
@@ -28,13 +32,21 @@ bool DatabaseManager::initialize(const QString& dbPath) {
         QDir().mkpath(dataDir);
         finalPath = dataDir + "/soniq_library.db";
     }
+    m_dbPath = finalPath;
 
     m_db = QSqlDatabase::addDatabase("QSQLITE", m_connectionName);
-    m_db.setDatabaseName(finalPath);
+    m_db.setDatabaseName(m_dbPath);
 
     if (!m_db.open()) {
         SONIQ_LOG_ERROR("Failed to open SQLite database: {}", m_db.lastError().text().toStdString());
         return false;
+    }
+
+    // Enable WAL mode for high performance & multi-threaded concurrency
+    {
+        QSqlQuery walQuery(m_db);
+        walQuery.exec("PRAGMA journal_mode = WAL;");
+        walQuery.exec("PRAGMA synchronous = NORMAL;");
     }
 
     SONIQ_LOG_INFO("SQLite database opened successfully at: {}", finalPath.toStdString());
@@ -42,17 +54,47 @@ bool DatabaseManager::initialize(const QString& dbPath) {
 }
 
 void DatabaseManager::close() {
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (m_db.isOpen()) {
         m_db.close();
     }
 }
 
 bool DatabaseManager::isOpen() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_db.isOpen();
 }
 
+QSqlDatabase DatabaseManager::getDatabase() const {
+    if (QThread::currentThreadId() == m_mainThreadId && m_db.isOpen()) {
+        return m_db;
+    }
+
+    const QString threadConnName = QString("%1_thread_%2")
+                                   .arg(m_connectionName)
+                                   .arg(reinterpret_cast<quintptr>(QThread::currentThreadId()));
+
+    if (QSqlDatabase::contains(threadConnName)) {
+        QSqlDatabase db = QSqlDatabase::database(threadConnName);
+        if (db.isOpen()) {
+            return db;
+        }
+    }
+
+    QSqlDatabase threadDb = QSqlDatabase::addDatabase("QSQLITE", threadConnName);
+    threadDb.setDatabaseName(m_dbPath);
+    if (!threadDb.open()) {
+        SONIQ_LOG_ERROR("Failed to open thread database connection {}: {}",
+                        threadConnName.toStdString(), threadDb.lastError().text().toStdString());
+        return m_db;
+    }
+
+    return threadDb;
+}
+
 bool DatabaseManager::runMigrations() {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = getDatabase();
+    QSqlQuery query(db);
 
     // Schema version tracking table
     query.exec("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY);");
@@ -66,7 +108,7 @@ bool DatabaseManager::runMigrations() {
 
     if (currentVersion < 1) {
         SONIQ_LOG_INFO("Running database schema migration to v1...");
-        m_db.transaction();
+        db.transaction();
 
         // 1. Tracks table
         bool ok = query.exec(
@@ -150,11 +192,11 @@ bool DatabaseManager::runMigrations() {
 
         if (ok) {
             query.exec("UPDATE schema_version SET version = 1;");
-            m_db.commit();
+            db.commit();
             SONIQ_LOG_INFO("Database migration v1 completed successfully.");
             currentVersion = 1;
         } else {
-            m_db.rollback();
+            db.rollback();
             SONIQ_LOG_ERROR("Migration v1 failed: {}", query.lastError().text().toStdString());
             return false;
         }
@@ -162,8 +204,8 @@ bool DatabaseManager::runMigrations() {
 
     if (currentVersion < 2) {
         SONIQ_LOG_INFO("Running database schema migration to v2 (artwork_path)...");
-        m_db.transaction();
-        QSqlQuery check(m_db);
+        db.transaction();
+        QSqlQuery check(db);
         check.exec("PRAGMA table_info(tracks);");
         bool hasArtCol = false;
         while (check.next()) {
@@ -178,10 +220,10 @@ bool DatabaseManager::runMigrations() {
         }
         if (ok) {
             query.exec("UPDATE schema_version SET version = 2;");
-            m_db.commit();
+            db.commit();
             SONIQ_LOG_INFO("Database migration v2 completed successfully.");
         } else {
-            m_db.rollback();
+            db.rollback();
             SONIQ_LOG_ERROR("Migration v2 failed: {}", query.lastError().text().toStdString());
             return false;
         }
@@ -192,8 +234,9 @@ bool DatabaseManager::runMigrations() {
 
 int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    QSqlQuery query(m_db);
-    query.prepare(
+    QSqlDatabase db = getDatabase();
+    QSqlQuery query(db);
+    if (!query.prepare(
         "INSERT INTO tracks ("
         "  file_path, title, artist, album, album_artist, genre, year, track_number, disc_number,"
         "  duration, sample_rate, bit_depth, channels, bitrate, format, file_size, date_added,"
@@ -205,7 +248,10 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
         "  title = excluded.title, artist = excluded.artist, album = excluded.album,"
         "  duration = excluded.duration, bitrate = excluded.bitrate, file_size = excluded.file_size,"
         "  artwork_path = excluded.artwork_path;"
-    );
+    )) {
+        SONIQ_LOG_ERROR("Failed to prepare insert/update track statement: {}", query.lastError().text().toStdString());
+        return -1;
+    }
 
     query.bindValue(":path", QString::fromStdString(track.filePath));
     query.bindValue(":title", QString::fromStdString(track.title));
@@ -231,7 +277,8 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
     query.bindValue(":art", QString::fromStdString(track.artworkPath));
 
     if (query.exec()) {
-        return query.lastInsertId().toLongLong();
+        auto insertId = query.lastInsertId().toLongLong();
+        return insertId > 0 ? insertId : 1;
     } else {
         SONIQ_LOG_ERROR("Failed to insert/update track: {}", query.lastError().text().toStdString());
         return -1;
@@ -240,7 +287,7 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
 
 bool DatabaseManager::removeTrack(int64_t trackId) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare("DELETE FROM tracks WHERE id = :id;");
     query.bindValue(":id", static_cast<qint64>(trackId));
     return query.exec();
@@ -248,7 +295,7 @@ bool DatabaseManager::removeTrack(int64_t trackId) {
 
 bool DatabaseManager::removeTrackByPath(const std::string& filePath) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare("DELETE FROM tracks WHERE file_path = :path;");
     query.bindValue(":path", QString::fromStdString(filePath));
     return query.exec();
@@ -285,7 +332,7 @@ static TrackRecord readTrackRecord(const QSqlQuery& q) {
 std::vector<TrackRecord> DatabaseManager::getAllTracks(const std::string& sortBy) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     QString sql = "SELECT * FROM tracks ORDER BY " + QString::fromStdString(sortBy) + ";";
     if (query.exec(sql)) {
         while (query.next()) {
@@ -298,7 +345,7 @@ std::vector<TrackRecord> DatabaseManager::getAllTracks(const std::string& sortBy
 std::vector<TrackRecord> DatabaseManager::searchTracks(const std::string& queryString) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare(
         "SELECT * FROM tracks WHERE "
         "title LIKE :q OR artist LIKE :q OR album LIKE :q OR genre LIKE :q "
@@ -316,8 +363,9 @@ std::vector<TrackRecord> DatabaseManager::searchTracks(const std::string& queryS
 }
 
 std::vector<TrackRecord> DatabaseManager::getFavoriteTracks() {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     if (query.exec("SELECT * FROM tracks WHERE favorite = 1 ORDER BY title ASC;")) {
         while (query.next()) {
             results.push_back(readTrackRecord(query));
@@ -327,8 +375,9 @@ std::vector<TrackRecord> DatabaseManager::getFavoriteTracks() {
 }
 
 std::vector<TrackRecord> DatabaseManager::getRecentlyPlayedTracks(size_t limit) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare("SELECT * FROM tracks WHERE last_played > 0 ORDER BY last_played DESC LIMIT :lim;");
     query.bindValue(":lim", static_cast<qulonglong>(limit));
     if (query.exec()) {
@@ -340,8 +389,9 @@ std::vector<TrackRecord> DatabaseManager::getRecentlyPlayedTracks(size_t limit) 
 }
 
 std::vector<TrackRecord> DatabaseManager::getMostPlayedTracks(size_t limit) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare("SELECT * FROM tracks WHERE play_count > 0 ORDER BY play_count DESC LIMIT :lim;");
     query.bindValue(":lim", static_cast<qulonglong>(limit));
     if (query.exec()) {
@@ -353,8 +403,9 @@ std::vector<TrackRecord> DatabaseManager::getMostPlayedTracks(size_t limit) {
 }
 
 std::vector<TrackRecord> DatabaseManager::getRecentlyAddedTracks(size_t limit) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare("SELECT * FROM tracks ORDER BY date_added DESC LIMIT :lim;");
     query.bindValue(":lim", static_cast<qulonglong>(limit));
     if (query.exec()) {
@@ -366,7 +417,8 @@ std::vector<TrackRecord> DatabaseManager::getRecentlyAddedTracks(size_t limit) {
 }
 
 bool DatabaseManager::setTrackFavorite(int64_t trackId, bool favorite) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("UPDATE tracks SET favorite = :fav WHERE id = :id;");
     query.bindValue(":fav", favorite ? 1 : 0);
     query.bindValue(":id", static_cast<qint64>(trackId));
@@ -374,7 +426,8 @@ bool DatabaseManager::setTrackFavorite(int64_t trackId, bool favorite) {
 }
 
 bool DatabaseManager::incrementPlayCount(int64_t trackId) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("UPDATE tracks SET play_count = play_count + 1, last_played = :now WHERE id = :id;");
     query.bindValue(":now", QDateTime::currentSecsSinceEpoch());
     query.bindValue(":id", static_cast<qint64>(trackId));
@@ -382,7 +435,8 @@ bool DatabaseManager::incrementPlayCount(int64_t trackId) {
 }
 
 int64_t DatabaseManager::createPlaylist(const std::string& name, bool isSmart, const std::string& rules) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare(
         "INSERT INTO playlists (name, created_at, updated_at, is_smart, rules_json) "
         "VALUES (:name, :created, :updated, :smart, :rules);"
@@ -401,14 +455,16 @@ int64_t DatabaseManager::createPlaylist(const std::string& name, bool isSmart, c
 }
 
 bool DatabaseManager::deletePlaylist(int64_t playlistId) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("DELETE FROM playlists WHERE id = :id;");
     query.bindValue(":id", static_cast<qint64>(playlistId));
     return query.exec();
 }
 
 bool DatabaseManager::renamePlaylist(int64_t playlistId, const std::string& newName) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("UPDATE playlists SET name = :name, updated_at = :up WHERE id = :id;");
     query.bindValue(":name", QString::fromStdString(newName));
     query.bindValue(":up", QDateTime::currentSecsSinceEpoch());
@@ -417,8 +473,9 @@ bool DatabaseManager::renamePlaylist(int64_t playlistId, const std::string& newN
 }
 
 std::vector<PlaylistRecord> DatabaseManager::getAllPlaylists() {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<PlaylistRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     if (query.exec("SELECT p.*, COUNT(pt.track_id) as tcount FROM playlists p "
                    "LEFT JOIN playlist_tracks pt ON p.id = pt.playlist_id "
                    "GROUP BY p.id ORDER BY p.name ASC;")) {
@@ -438,7 +495,8 @@ std::vector<PlaylistRecord> DatabaseManager::getAllPlaylists() {
 }
 
 bool DatabaseManager::addTrackToPlaylist(int64_t playlistId, int64_t trackId) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position) "
                   "VALUES (:pl, :tr, (SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_tracks WHERE playlist_id = :pl));");
     query.bindValue(":pl", static_cast<qint64>(playlistId));
@@ -447,7 +505,8 @@ bool DatabaseManager::addTrackToPlaylist(int64_t playlistId, int64_t trackId) {
 }
 
 bool DatabaseManager::removeTrackFromPlaylist(int64_t playlistId, int64_t trackId) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("DELETE FROM playlist_tracks WHERE playlist_id = :pl AND track_id = :tr;");
     query.bindValue(":pl", static_cast<qint64>(playlistId));
     query.bindValue(":tr", static_cast<qint64>(trackId));
@@ -455,8 +514,9 @@ bool DatabaseManager::removeTrackFromPlaylist(int64_t playlistId, int64_t trackI
 }
 
 std::vector<TrackRecord> DatabaseManager::getPlaylistTracks(int64_t playlistId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
-    QSqlQuery query(m_db);
+    QSqlQuery query(getDatabase());
     query.prepare(
         "SELECT t.* FROM tracks t "
         "INNER JOIN playlist_tracks pt ON t.id = pt.track_id "
@@ -473,7 +533,8 @@ std::vector<TrackRecord> DatabaseManager::getPlaylistTracks(int64_t playlistId) 
 }
 
 void DatabaseManager::setPreference(const std::string& key, const std::string& value) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("INSERT INTO preferences (key, value) VALUES (:k, :v) "
                   "ON CONFLICT(key) DO UPDATE SET value = excluded.value;");
     query.bindValue(":k", QString::fromStdString(key));
@@ -482,7 +543,8 @@ void DatabaseManager::setPreference(const std::string& key, const std::string& v
 }
 
 std::string DatabaseManager::getPreference(const std::string& key, const std::string& defaultValue) {
-    QSqlQuery query(m_db);
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
     query.prepare("SELECT value FROM preferences WHERE key = :k LIMIT 1;");
     query.bindValue(":k", QString::fromStdString(key));
     if (query.exec() && query.next()) {
