@@ -8,7 +8,10 @@ SONIQ is a modern, offline-first, cross-platform audiophile desktop music player
 
 - **Pure Audiophile Audio Path**: Bit-perfect playback verification with zero unneeded software volume scaling, resampling, or dithering in exclusive output mode.
 - **Dedicated Audio Threading**: Audio engine, decoding, and signal pipeline run decoupled from the UI thread, ensuring zero stuttering during UI animations, scanning, or window resizing.
-- **Universal Audio Decoding**: Direct low-latency PCM RIFF/WAV decoding and universal FFmpeg audio streaming (FLAC, ALAC, WAV, AIFF, DSD/DSF, MP3, AAC, OGG Vorbis, Opus, WavPack, APE, and more).
+- **Native DSD & DoP Engine**: Native Direct Stream Digital bitstream handling for `.dsf` and `.dff` files via DoP v1.1 (DSD over PCM at 176.4/352.8 kHz) for bit-perfect hardware playback and 64-tap linear-phase FIR decimation (40 kHz cutoff) for software rendering.
+- **Gapless Transitions & Lookahead Buffering**: Seamless zero-gap track transitions with background lookahead pre-buffering, zero-restart endpoint reuse, and optional equal-power constant-acoustic-power crossfading.
+- **Universal Audio Decoding**: Direct low-latency PCM RIFF/WAV decoding, DSD/DSF/DFF engine, and universal FFmpeg audio streaming (FLAC, ALAC, WAV, AIFF, MP3, AAC, OGG Vorbis, Opus, WavPack, APE, and more).
+- **Format-Aware Artwork Extraction**: High-speed extraction of embedded album artwork from FLAC picture blocks, MP3 ID3v2 APIC tags, and stream copy to persistent disk cache.
 - **Studio DSP Engine**:
   - 10-Band Graphic EQ (ISO Standard Octave bands)
   - 31-Band Graphic EQ (1/3 Octave bands)
@@ -19,12 +22,12 @@ SONIQ is a modern, offline-first, cross-platform audiophile desktop music player
   - Bit-Perfect Integrity Audit (identifies and explains any active DSP modifying raw samples)
 - **Offline-First & Privacy Conscious**:
   - Zero mandatory accounts or online telemetry
-  - Local SQLite database with versioned schema migrations
+  - Local SQLite database with versioned schema migrations (v1 and v2)
   - Asynchronous recursive library scanner
   - Full playlist management and instant search
 - **Design System & Presentation**:
   - Unified design tokens for dark and light themes
-  - Persistent mini-player with scrubbing timeline and real-time spectrum visualizer
+  - Persistent mini-player with scrubbing timeline, album artwork, and real-time spectrum visualizer
   - Centerpiece Now Playing screen and slide-in Playing Queue drawer
   - Technical Audio File Inspector showing container, codec, sample rate, bit depth, channel configuration, and bit-perfect eligibility audit
 

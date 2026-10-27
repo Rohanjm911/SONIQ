@@ -1,5 +1,6 @@
 #include "PlaybackController.hpp"
 #include "metadata/AudioProbe.hpp"
+#include "metadata/ArtworkExtractor.hpp"
 #include "database/DatabaseManager.hpp"
 #include <cmath>
 
@@ -18,6 +19,20 @@ PlaybackController::PlaybackController(audio::AudioPlaybackEngine& engine, QObje
         m_peakL = viz.peakLevelL;
         m_peakR = viz.peakLevelR;
         emit visualizerChanged();
+    });
+
+    m_engine.setTrackEndedCallback([this]() {
+        auto cur = m_engine.queue().currentItem();
+        if (cur.has_value()) {
+            m_title = QString::fromStdString(cur->title);
+            m_artist = QString::fromStdString(cur->artist);
+            m_album = QString::fromStdString(cur->album);
+            m_filePath = QString::fromStdString(cur->filePath);
+            m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(cur->filePath));
+            emit trackChanged();
+            emit durationChanged();
+            emit bitPerfectChanged();
+        }
     });
 
     connect(&m_pollTimer, &QTimer::timeout, this, [this]() {
@@ -54,6 +69,10 @@ QString PlaybackController::trackFormat() const {
 
 QString PlaybackController::trackFilePath() const {
     return m_filePath;
+}
+
+QString PlaybackController::trackArtworkPath() const {
+    return m_artworkPath;
 }
 
 double PlaybackController::position() const noexcept {
@@ -175,6 +194,7 @@ void PlaybackController::next() {
         m_artist = QString::fromStdString(cur->artist);
         m_album = QString::fromStdString(cur->album);
         m_filePath = QString::fromStdString(cur->filePath);
+        m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(cur->filePath));
         emit trackChanged();
         emit durationChanged();
     }
@@ -188,6 +208,7 @@ void PlaybackController::previous() {
         m_artist = QString::fromStdString(cur->artist);
         m_album = QString::fromStdString(cur->album);
         m_filePath = QString::fromStdString(cur->filePath);
+        m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(cur->filePath));
         emit trackChanged();
         emit durationChanged();
     }
@@ -207,6 +228,7 @@ void PlaybackController::playFile(const QString& path) {
     m_album = QString::fromStdString(inspection.metadata.album);
     m_format = QString::fromStdString(inspection.format.toDetailedString());
     m_filePath = path;
+    m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(stdPath));
 
     audio::QueueItem item;
     item.filePath = stdPath;

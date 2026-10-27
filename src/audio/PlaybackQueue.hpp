@@ -44,6 +44,8 @@ public:
     // Navigation
     [[nodiscard]] bool hasNext() const noexcept;
     [[nodiscard]] bool hasPrevious() const noexcept;
+    [[nodiscard]] std::optional<QueueItem> peekNext() const;
+    std::optional<QueueItem> advanceNext();
     std::optional<QueueItem> next();
     std::optional<QueueItem> previous();
 

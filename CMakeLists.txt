@@ -40,6 +40,9 @@ set(SONIQ_CORE_SOURCES
     src/dsp/Crossfeed.cpp
     src/dsp/DspPipeline.cpp
     src/metadata/AudioProbe.cpp
+    src/metadata/ArtworkExtractor.cpp
+    src/audio/dsd/DsdProcessor.cpp
+    src/audio/dsd/DsdAudioDecoder.cpp
     src/database/DatabaseManager.cpp
     src/library/LibraryScanner.cpp
     src/services/PlaybackController.cpp
@@ -101,6 +104,8 @@ add_executable(soniq_tests
     tests/unit/TestPlaybackQueue.cpp
     tests/unit/TestDatabase.cpp
     tests/unit/TestAudioEngine.cpp
+    tests/unit/TestDsd.cpp
+    tests/unit/TestArtworkAndGapless.cpp
 )
 
 target_link_libraries(soniq_tests PRIVATE

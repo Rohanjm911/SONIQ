@@ -8,13 +8,15 @@ void runDspTests();
 void testPlaybackQueue();
 void testDatabase();
 void testAudioEngine();
+void runDsdTests();
+void runArtworkAndGaplessTests();
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
 
     std::cout << "==================================================" << std::endl;
-    std::cout << "  SONIQ AUTOMATED TEST SUITE (PHASE 1 VERIFICATION)" << std::endl;
-    std::cout << "  Testing Audio Engine, DSP, Database, & Formats" << std::endl;
+    std::cout << "  SONIQ AUTOMATED TEST SUITE (PHASES 1, 2, 3)     " << std::endl;
+    std::cout << "  Testing Audio Engine, DSP, DSD, DoP, Gapless, DB" << std::endl;
     std::cout << "==================================================" << std::endl;
 
     try {
@@ -24,6 +26,8 @@ int main(int argc, char* argv[]) {
         testPlaybackQueue();
         testDatabase();
         testAudioEngine();
+        runDsdTests();
+        runArtworkAndGaplessTests();
 
         std::cout << "==================================================" << std::endl;
         std::cout << "  ✓ ALL SONIQ UNIT & INTEGRATION TESTS PASSED!    " << std::endl;

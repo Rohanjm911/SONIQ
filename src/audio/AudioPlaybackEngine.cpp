@@ -6,6 +6,9 @@
 #include "core/Logger.hpp"
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <numbers>
+#include <cmath>
 
 namespace soniq::audio {
 
@@ -24,10 +27,23 @@ AudioPlaybackEngine::AudioPlaybackEngine() {
 AudioPlaybackEngine::~AudioPlaybackEngine() {
     stop();
     m_stopThread = true;
+    clearLookahead();
     m_cv.notify_all();
     if (m_audioThread.joinable()) {
         m_audioThread.join();
     }
+}
+
+std::unique_ptr<AudioDecoder> AudioPlaybackEngine::createDecoder(const std::string& filePath) {
+    namespace fs = std::filesystem;
+    std::string ext = fs::path(filePath).extension().string();
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+    if (ext == ".dsf" || ext == ".dff") {
+        auto mode = m_dopEnabled ? dsd::DsdPlaybackMode::DoP : dsd::DsdPlaybackMode::DecimatedPcm;
+        return std::make_unique<dsd::DsdAudioDecoder>(mode);
+    }
+    return std::make_unique<FFmpegAudioDecoder>();
 }
 
 void AudioPlaybackEngine::setOutputBackend(std::unique_ptr<IAudioOutput> output) {
@@ -47,10 +63,47 @@ void AudioPlaybackEngine::setState(core::PlaybackState newState) {
     }
 }
 
+void AudioPlaybackEngine::clearLookahead() {
+    m_lookaheadReady = false;
+    m_lookaheadLoading = false;
+    if (m_lookaheadWorker.joinable()) {
+        m_lookaheadWorker.join();
+    }
+    std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+    m_lookaheadDecoder.reset();
+    m_lookaheadTargetFile.clear();
+}
+
+void AudioPlaybackEngine::startLookaheadWorker(const std::string& filePath) {
+    if (m_lookaheadLoading || m_lookaheadReady) return;
+    m_lookaheadLoading = true;
+    m_lookaheadTargetFile = filePath;
+
+    if (m_lookaheadWorker.joinable()) {
+        m_lookaheadWorker.join();
+    }
+
+    m_lookaheadWorker = std::thread([this, filePath]() {
+        auto dec = createDecoder(filePath);
+        auto res = dec->open(filePath);
+        if (res.isOk()) {
+            std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+            m_lookaheadDecoder = std::move(dec);
+            m_lookaheadReady = true;
+            SONIQ_LOG_INFO("Lookahead pre-buffering ready for next track: {}", filePath);
+        } else {
+            SONIQ_LOG_WARN("Lookahead pre-buffering failed for: {}", filePath);
+        }
+        m_lookaheadLoading = false;
+    });
+}
+
 core::Result<void> AudioPlaybackEngine::playTrack(const std::string& filePath) {
     std::lock_guard<std::mutex> lock(m_mutex);
     setState(core::PlaybackState::Buffering);
+    clearLookahead();
 
+    m_decoder = createDecoder(filePath);
     auto openRes = m_decoder->open(filePath);
     if (openRes.isError()) {
         setState(core::PlaybackState::Error);
@@ -78,7 +131,7 @@ core::Result<void> AudioPlaybackEngine::playTrack(const std::string& filePath) {
 }
 
 void AudioPlaybackEngine::play() {
-    if (m_state == core::PlaybackState::Paused && m_decoder->isOpen()) {
+    if (m_state == core::PlaybackState::Paused && m_decoder && m_decoder->isOpen()) {
         if (m_output) m_output->start();
         setState(core::PlaybackState::Playing);
         m_cv.notify_one();
@@ -99,8 +152,9 @@ void AudioPlaybackEngine::pause() {
 
 void AudioPlaybackEngine::stop() {
     std::lock_guard<std::mutex> lock(m_mutex);
+    clearLookahead();
     if (m_output) m_output->stop();
-    m_decoder->close();
+    if (m_decoder) m_decoder->close();
     m_positionSeconds = 0.0;
     setState(core::PlaybackState::Stopped);
 }
@@ -114,15 +168,17 @@ void AudioPlaybackEngine::togglePlayPause() {
 }
 
 core::Result<void> AudioPlaybackEngine::seek(double seconds) {
-    if (!m_decoder->isOpen()) {
+    if (!m_decoder || !m_decoder->isOpen()) {
         return core::Error::make(-1, "No track currently loaded", "Engine");
     }
+    clearLookahead();
     m_pendingSeek = seconds;
     m_cv.notify_one();
     return core::Result<void>::ok();
 }
 
 void AudioPlaybackEngine::nextTrack() {
+    clearLookahead();
     auto next = m_queue.next();
     if (next.has_value()) {
         playTrack(next->filePath);
@@ -132,7 +188,7 @@ void AudioPlaybackEngine::nextTrack() {
 }
 
 void AudioPlaybackEngine::previousTrack() {
-    // If we are more than 3 seconds into the track, previous restarts track
+    clearLookahead();
     if (m_positionSeconds.load() > 3.0) {
         seek(0.0);
         return;
@@ -170,8 +226,8 @@ core::AudioFormat AudioPlaybackEngine::currentFormat() const noexcept {
 core::BitPerfectStatus AudioPlaybackEngine::bitPerfectStatus() const noexcept {
     if (!m_output) return core::BitPerfectStatus::Unknown;
 
-    // If DSP alters signal or volume is not 100%, bit-perfect is unavailable
-    if (m_dsp.altersSignal() || std::abs(m_volume.load() - 1.0f) > 1e-4f || m_muted.load()) {
+    // Crossfading and DSP alter signal
+    if (m_crossfadeEnabled.load() || m_dsp.altersSignal() || std::abs(m_volume.load() - 1.0f) > 1e-4f || m_muted.load()) {
         return core::BitPerfectStatus::Unavailable;
     }
 
@@ -179,6 +235,10 @@ core::BitPerfectStatus AudioPlaybackEngine::bitPerfectStatus() const noexcept {
 }
 
 std::string AudioPlaybackEngine::bitPerfectStatusExplanation() const {
+    if (m_crossfadeEnabled.load()) {
+        return "Equal-power crossfading active (track overlap mixing alters original sample bits).";
+    }
+
     if (m_dsp.altersSignal()) {
         auto reasons = m_dsp.bitPerfectDisablingReasons();
         std::string explanation = "Bit-perfect mode is disabled by DSP processing:\n";
@@ -219,6 +279,7 @@ void AudioPlaybackEngine::setTrackEndedCallback(TrackEndedCallback cb) {
 void AudioPlaybackEngine::audioThreadLoop() {
     constexpr size_t kBlockFrames = 1024;
     std::vector<float> readBuffer(kBlockFrames * 2, 0.0f);
+    std::vector<float> crossfadeBuffer(kBlockFrames * 2, 0.0f);
 
     while (!m_stopThread) {
         if (m_state != core::PlaybackState::Playing) {
@@ -243,11 +304,27 @@ void AudioPlaybackEngine::audioThreadLoop() {
             continue;
         }
 
+        // Lookahead trigger: if track has <= 4.0 seconds remaining, prime next track
+        double curPos = m_positionSeconds.load();
+        double totalDur = m_durationSeconds.load();
+        double remainingSec = totalDur - curPos;
+
+        if ((m_gaplessEnabled.load() || m_crossfadeEnabled.load()) &&
+            remainingSec <= std::max(4.0, m_crossfadeSeconds.load() + 1.0) &&
+            !m_lookaheadReady && !m_lookaheadLoading && m_queue.hasNext()) {
+
+            auto nextItem = m_queue.peekNext();
+            if (nextItem.has_value()) {
+                startLookaheadWorker(nextItem->filePath);
+            }
+        }
+
         size_t framesRead = 0;
+        uint16_t ch = 2;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             if (m_decoder && m_decoder->isOpen() && !m_decoder->isEof()) {
-                uint16_t ch = m_decoder->format().channels() > 0 ? m_decoder->format().channels() : 2;
+                ch = m_decoder->format().channels() > 0 ? m_decoder->format().channels() : 2;
                 if (readBuffer.size() < kBlockFrames * ch) {
                     readBuffer.resize(kBlockFrames * ch);
                 }
@@ -256,19 +333,76 @@ void AudioPlaybackEngine::audioThreadLoop() {
             }
         }
 
-        if (framesRead == 0) {
-            // Track reached EOF
-            SONIQ_LOG_INFO("Track finished playback, transitioning to next");
-            nextTrack();
-            if (m_trackEndedCallback) {
-                m_trackEndedCallback();
+        // Equal-Power Crossfading logic
+        if (m_crossfadeEnabled.load() && m_lookaheadReady.load() && remainingSec <= m_crossfadeSeconds.load() && remainingSec > 0.0 && framesRead > 0) {
+            std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+            if (m_lookaheadDecoder && m_lookaheadDecoder->isOpen() && !m_lookaheadDecoder->isEof()) {
+                if (crossfadeBuffer.size() < framesRead * ch) {
+                    crossfadeBuffer.resize(framesRead * ch);
+                }
+                size_t nextRead = m_lookaheadDecoder->readFrames(crossfadeBuffer.data(), framesRead);
+
+                double xfDuration = m_crossfadeSeconds.load();
+                double progress = std::clamp(1.0 - (remainingSec / xfDuration), 0.0, 1.0);
+
+                // Equal power curves: cos(pi/2 * p) and sin(pi/2 * p)
+                float gainOut = static_cast<float>(std::cos(0.5 * std::numbers::pi * progress));
+                float gainIn = static_cast<float>(std::sin(0.5 * std::numbers::pi * progress));
+
+                for (size_t i = 0; i < framesRead * ch; ++i) {
+                    float inSample = (i < nextRead * ch) ? crossfadeBuffer[i] : 0.0f;
+                    readBuffer[i] = (readBuffer[i] * gainOut) + (inSample * gainIn);
+                }
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
+        }
+
+        // Track EOF or transition
+        if (framesRead == 0) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            std::lock_guard<std::mutex> lookaheadLock(m_lookaheadMutex);
+
+            if (m_lookaheadReady && m_lookaheadDecoder && m_lookaheadDecoder->isOpen()) {
+                bool matchingFormat = (m_decoder &&
+                                       m_decoder->format().sampleRate() == m_lookaheadDecoder->format().sampleRate() &&
+                                       m_decoder->format().channels() == m_lookaheadDecoder->format().channels());
+
+                m_decoder = std::move(m_lookaheadDecoder);
+                m_queue.advanceNext();
+                m_durationSeconds = m_decoder->durationSeconds();
+                m_positionSeconds = m_decoder->positionSeconds();
+                m_lookaheadReady = false;
+                m_lookaheadLoading = false;
+
+                if (matchingFormat) {
+                    // Seamless gapless: keep WASAPI stream running without restart
+                    SONIQ_LOG_INFO("Seamless gapless transition executed (output format preserved)");
+                } else {
+                    // Format changed: reconfigure output
+                    auto format = m_decoder->format();
+                    m_dsp.setSampleRate(format.sampleRate());
+                    if (m_output) {
+                        m_output->open(format, "", core::OutputMode::Shared);
+                        m_output->start();
+                    }
+                    SONIQ_LOG_INFO("Gapless transition with format adaptation: {} Hz", format.sampleRate());
+                }
+
+                if (m_trackEndedCallback) {
+                    m_trackEndedCallback();
+                }
+                continue;
+            } else {
+                SONIQ_LOG_INFO("Track finished playback, transitioning to next");
+                nextTrack();
+                if (m_trackEndedCallback) {
+                    m_trackEndedCallback();
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
         }
 
         // Apply DSP
-        uint16_t ch = m_decoder->format().channels() > 0 ? m_decoder->format().channels() : 2;
         m_dsp.process(readBuffer.data(), framesRead, ch);
 
         // Visualizer data extraction
@@ -297,8 +431,9 @@ void AudioPlaybackEngine::audioThreadLoop() {
                 }
             }
         } else {
-            // If output is null or paused, simulate real-time consumption
-            double blockMs = (static_cast<double>(framesRead) / static_cast<double>(m_decoder->format().sampleRate())) * 1000.0;
+            // Null output real-time simulation
+            double sr = (m_decoder && m_decoder->format().sampleRate() > 0) ? m_decoder->format().sampleRate() : 44100.0;
+            double blockMs = (static_cast<double>(framesRead) / sr) * 1000.0;
             std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(blockMs));
         }
     }

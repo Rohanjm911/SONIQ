@@ -34,6 +34,7 @@ struct TrackRecord {
     int64_t lastPlayed{0};
     bool isFavorite{false};
     int rating{0};
+    std::string artworkPath;
 };
 
 struct PlaylistRecord {

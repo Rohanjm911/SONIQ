@@ -34,11 +34,22 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 clip: true
 
+                Image {
+                    anchors.fill: parent
+                    source: (playbackController.trackArtworkPath && playbackController.trackArtworkPath.length > 0)
+                            ? ("file:///" + playbackController.trackArtworkPath)
+                            : ""
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                    visible: status === Image.Ready
+                }
+
                 Text {
                     anchors.centerIn: parent
-                    text: "♫"
+                    text: "\u266B"
                     font.pixelSize: 22
                     color: Colors.textMuted
+                    visible: !playbackController.trackArtworkPath || playbackController.trackArtworkPath.length === 0
                 }
 
                 MouseArea {

@@ -22,7 +22,8 @@ public:
         FilePathRole,
         FormatRole,
         FavoriteRole,
-        PlayCountRole
+        PlayCountRole,
+        ArtworkPathRole
     };
 
     explicit LibraryModel(QObject* parent = nullptr);

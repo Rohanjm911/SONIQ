@@ -2,6 +2,7 @@
 
 #include "AudioDecoder.hpp"
 #include "FFmpegAudioDecoder.hpp"
+#include "dsd/DsdAudioDecoder.hpp"
 #include "AudioBuffer.hpp"
 #include "PlaybackQueue.hpp"
 #include "dsp/DspPipeline.hpp"
@@ -13,6 +14,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <vector>
 
 namespace soniq::audio {
 
@@ -54,6 +56,20 @@ public:
     void setMuted(bool muted);
     [[nodiscard]] bool isMuted() const noexcept { return m_muted; }
 
+    // Gapless, Crossfade, and DSD configuration
+    void setGaplessEnabled(bool enabled) noexcept { m_gaplessEnabled = enabled; }
+    [[nodiscard]] bool isGaplessEnabled() const noexcept { return m_gaplessEnabled; }
+
+    void setCrossfade(bool enabled, double seconds) noexcept {
+        m_crossfadeEnabled = enabled;
+        m_crossfadeSeconds = std::max(0.1, seconds);
+    }
+    [[nodiscard]] bool isCrossfadeEnabled() const noexcept { return m_crossfadeEnabled; }
+    [[nodiscard]] double crossfadeDuration() const noexcept { return m_crossfadeSeconds; }
+
+    void setDopEnabled(bool enabled) noexcept { m_dopEnabled = enabled; }
+    [[nodiscard]] bool isDopEnabled() const noexcept { return m_dopEnabled; }
+
     // Status queries
     [[nodiscard]] core::PlaybackState state() const noexcept { return m_state; }
     [[nodiscard]] double currentPositionSeconds() const noexcept { return m_positionSeconds; }
@@ -70,9 +86,14 @@ public:
 private:
     void audioThreadLoop();
     void setState(core::PlaybackState newState);
+    std::unique_ptr<AudioDecoder> createDecoder(const std::string& filePath);
+    void startLookaheadWorker(const std::string& filePath);
+    void clearLookahead();
 
     std::unique_ptr<IAudioOutput> m_output;
     std::unique_ptr<AudioDecoder> m_decoder;
+    std::unique_ptr<AudioDecoder> m_lookaheadDecoder;
+
     dsp::DspPipeline m_dsp;
     PlaybackQueue m_queue;
 
@@ -83,6 +104,18 @@ private:
     std::atomic<double> m_positionSeconds{0.0};
     std::atomic<double> m_durationSeconds{0.0};
     std::atomic<double> m_pendingSeek{-1.0};
+
+    // Gapless & Crossfade controls
+    std::atomic<bool> m_gaplessEnabled{true};
+    std::atomic<bool> m_crossfadeEnabled{false};
+    std::atomic<double> m_crossfadeSeconds{2.0};
+    std::atomic<bool> m_dopEnabled{true};
+
+    std::atomic<bool> m_lookaheadReady{false};
+    std::atomic<bool> m_lookaheadLoading{false};
+    std::string m_lookaheadTargetFile;
+    std::thread m_lookaheadWorker;
+    std::mutex m_lookaheadMutex;
 
     std::thread m_audioThread;
     std::mutex m_mutex;

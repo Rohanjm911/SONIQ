@@ -92,7 +92,8 @@ bool DatabaseManager::runMigrations() {
             "  play_count INTEGER DEFAULT 0,"
             "  last_played INTEGER DEFAULT 0,"
             "  favorite INTEGER DEFAULT 0,"
-            "  rating INTEGER DEFAULT 0"
+            "  rating INTEGER DEFAULT 0,"
+            "  artwork_path TEXT"
             ");"
         );
 
@@ -151,9 +152,37 @@ bool DatabaseManager::runMigrations() {
             query.exec("UPDATE schema_version SET version = 1;");
             m_db.commit();
             SONIQ_LOG_INFO("Database migration v1 completed successfully.");
+            currentVersion = 1;
         } else {
             m_db.rollback();
             SONIQ_LOG_ERROR("Migration v1 failed: {}", query.lastError().text().toStdString());
+            return false;
+        }
+    }
+
+    if (currentVersion < 2) {
+        SONIQ_LOG_INFO("Running database schema migration to v2 (artwork_path)...");
+        m_db.transaction();
+        QSqlQuery check(m_db);
+        check.exec("PRAGMA table_info(tracks);");
+        bool hasArtCol = false;
+        while (check.next()) {
+            if (check.value(1).toString() == "artwork_path") {
+                hasArtCol = true;
+                break;
+            }
+        }
+        bool ok = true;
+        if (!hasArtCol) {
+            ok = query.exec("ALTER TABLE tracks ADD COLUMN artwork_path TEXT;");
+        }
+        if (ok) {
+            query.exec("UPDATE schema_version SET version = 2;");
+            m_db.commit();
+            SONIQ_LOG_INFO("Database migration v2 completed successfully.");
+        } else {
+            m_db.rollback();
+            SONIQ_LOG_ERROR("Migration v2 failed: {}", query.lastError().text().toStdString());
             return false;
         }
     }
@@ -167,13 +196,14 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
         "INSERT INTO tracks ("
         "  file_path, title, artist, album, album_artist, genre, year, track_number, disc_number,"
         "  duration, sample_rate, bit_depth, channels, bitrate, format, file_size, date_added,"
-        "  play_count, last_played, favorite, rating"
+        "  play_count, last_played, favorite, rating, artwork_path"
         ") VALUES ("
         "  :path, :title, :artist, :album, :album_artist, :genre, :year, :track_num, :disc_num,"
-        "  :dur, :sr, :bd, :ch, :br, :fmt, :sz, :added, :pc, :lp, :fav, :rate"
+        "  :dur, :sr, :bd, :ch, :br, :fmt, :sz, :added, :pc, :lp, :fav, :rate, :art"
         ") ON CONFLICT(file_path) DO UPDATE SET "
         "  title = excluded.title, artist = excluded.artist, album = excluded.album,"
-        "  duration = excluded.duration, bitrate = excluded.bitrate, file_size = excluded.file_size;"
+        "  duration = excluded.duration, bitrate = excluded.bitrate, file_size = excluded.file_size,"
+        "  artwork_path = excluded.artwork_path;"
     );
 
     query.bindValue(":path", QString::fromStdString(track.filePath));
@@ -197,6 +227,7 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
     query.bindValue(":lp", track.lastPlayed);
     query.bindValue(":fav", track.isFavorite ? 1 : 0);
     query.bindValue(":rate", track.rating);
+    query.bindValue(":art", QString::fromStdString(track.artworkPath));
 
     if (query.exec()) {
         return query.lastInsertId().toLongLong();
@@ -244,6 +275,7 @@ static TrackRecord readTrackRecord(const QSqlQuery& q) {
     r.lastPlayed = q.value("last_played").toLongLong();
     r.isFavorite = q.value("favorite").toInt() != 0;
     r.rating = q.value("rating").toInt();
+    r.artworkPath = q.value("artwork_path").toString().toStdString();
     return r;
 }
 

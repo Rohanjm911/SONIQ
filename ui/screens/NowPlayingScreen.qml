@@ -20,12 +20,24 @@ Item {
             color: Colors.surfaceElevated
             border.color: Colors.borderSubtle
             border.width: 1
+            clip: true
+
+            Image {
+                anchors.fill: parent
+                source: (playbackController.trackArtworkPath && playbackController.trackArtworkPath.length > 0)
+                        ? ("file:///" + playbackController.trackArtworkPath)
+                        : ""
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
+                visible: status === Image.Ready
+            }
 
             Text {
                 anchors.centerIn: parent
-                text: "♫"
+                text: "\u266B"
                 font.pixelSize: 80
                 color: Colors.textMuted
+                visible: !playbackController.trackArtworkPath || playbackController.trackArtworkPath.length === 0
             }
         }
 
@@ -48,7 +60,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: playbackController.trackArtist + " — " + playbackController.trackAlbum
+                text: playbackController.trackArtist + " \u2014 " + playbackController.trackAlbum
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeBody
                 color: Colors.textSecondary

@@ -1,5 +1,6 @@
 #include "LibraryScanner.hpp"
 #include "metadata/AudioProbe.hpp"
+#include "metadata/ArtworkExtractor.hpp"
 #include "core/Logger.hpp"
 #include <filesystem>
 #include <algorithm>
@@ -79,6 +80,7 @@ void LibraryScanner::doScan(const QString& path) {
             rec.bitrate = inspection.format.bitrate();
             rec.format = inspection.format.codec();
             rec.fileSize = inspection.metadata.fileSize;
+            rec.artworkPath = metadata::ArtworkExtractor::instance().getOrExtractArtwork(filePath);
 
             if (db::DatabaseManager::instance().insertOrUpdateTrack(rec) > 0) {
                 addedCount++;

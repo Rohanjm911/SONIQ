@@ -10,6 +10,7 @@ Rectangle {
     property string album: "Album Name"
     property string duration: "3:45"
     property string format: "FLAC"
+    property string artworkPath: ""
     property bool isPlaying: false
     property bool isFavorite: false
 
@@ -73,6 +74,24 @@ Rectangle {
                 iconSymbol: "▶"
                 iconPixelSize: 12
                 onClicked: root.playClicked()
+            }
+        }
+
+        // Mini Artwork Thumbnail
+        Rectangle {
+            width: 32
+            height: 32
+            radius: Theme.cornerRadiusSmall
+            color: Colors.surfaceElevated
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.artworkPath.length > 0
+            clip: true
+
+            Image {
+                anchors.fill: parent
+                source: root.artworkPath.length > 0 ? ("file:///" + root.artworkPath) : ""
+                fillMode: Image.PreserveAspectCrop
+                smooth: true
             }
         }
 

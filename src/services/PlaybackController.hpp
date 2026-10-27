@@ -17,6 +17,7 @@ class PlaybackController : public QObject {
     Q_PROPERTY(QString trackAlbum READ trackAlbum NOTIFY trackChanged)
     Q_PROPERTY(QString trackFormat READ trackFormat NOTIFY trackChanged)
     Q_PROPERTY(QString trackFilePath READ trackFilePath NOTIFY trackChanged)
+    Q_PROPERTY(QString trackArtworkPath READ trackArtworkPath NOTIFY trackChanged)
     Q_PROPERTY(double position READ position NOTIFY positionChanged)
     Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
     Q_PROPERTY(QString positionFormatted READ positionFormatted NOTIFY positionChanged)
@@ -42,6 +43,7 @@ public:
     [[nodiscard]] QString trackAlbum() const;
     [[nodiscard]] QString trackFormat() const;
     [[nodiscard]] QString trackFilePath() const;
+    [[nodiscard]] QString trackArtworkPath() const;
 
     [[nodiscard]] double position() const noexcept;
     [[nodiscard]] double duration() const noexcept;
@@ -99,6 +101,7 @@ private:
     QString m_album{"Pure Sound"};
     QString m_format{"None"};
     QString m_filePath;
+    QString m_artworkPath;
 
     float m_peakL{0.0f};
     float m_peakR{0.0f};

@@ -188,6 +188,7 @@ Item {
                 album: model.album
                 duration: model.durationFormatted
                 format: model.format
+                artworkPath: model.artworkPath ? model.artworkPath : ""
                 isFavorite: model.isFavorite
                 isPlaying: playbackController.trackFilePath === model.filePath && playbackController.isPlaying
 

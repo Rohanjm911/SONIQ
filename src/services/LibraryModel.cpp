@@ -36,6 +36,7 @@ QVariant LibraryModel::data(const QModelIndex& index, int role) const {
         case FormatRole:            return QString::fromStdString(track.format);
         case FavoriteRole:          return track.isFavorite;
         case PlayCountRole:         return track.playCount;
+        case ArtworkPathRole:       return QString::fromStdString(track.artworkPath);
         default:                    return QVariant();
     }
 }
@@ -54,6 +55,7 @@ QHash<int, QByteArray> LibraryModel::roleNames() const {
     roles[FormatRole] = "format";
     roles[FavoriteRole] = "isFavorite";
     roles[PlayCountRole] = "playCount";
+    roles[ArtworkPathRole] = "artworkPath";
     return roles;
 }
 
@@ -119,6 +121,7 @@ QVariantMap LibraryModel::getTrackAt(int row) const {
     map["filePath"] = QString::fromStdString(t.filePath);
     map["duration"] = t.durationSeconds;
     map["format"] = QString::fromStdString(t.format);
+    map["artworkPath"] = QString::fromStdString(t.artworkPath);
     return map;
 }
 

@@ -178,6 +178,36 @@ bool PlaybackQueue::hasPrevious() const noexcept {
     return m_currentIndex > 0;
 }
 
+std::optional<QueueItem> PlaybackQueue::peekNext() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_items.empty()) return std::nullopt;
+
+    if (m_repeatMode == core::RepeatMode::Track) {
+        return m_items[m_currentIndex];
+    }
+
+    if (m_shuffle) {
+        if (m_shufflePosition + 1 < m_shuffleIndices.size()) {
+            return m_items[m_shuffleIndices[m_shufflePosition + 1]];
+        } else if (m_repeatMode == core::RepeatMode::Queue && !m_shuffleIndices.empty()) {
+            return m_items[m_shuffleIndices[0]];
+        }
+        return std::nullopt;
+    }
+
+    if (m_currentIndex + 1 < m_items.size()) {
+        return m_items[m_currentIndex + 1];
+    } else if (m_repeatMode == core::RepeatMode::Queue) {
+        return m_items[0];
+    }
+
+    return std::nullopt;
+}
+
+std::optional<QueueItem> PlaybackQueue::advanceNext() {
+    return next();
+}
+
 std::optional<QueueItem> PlaybackQueue::next() {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_items.empty()) return std::nullopt;
