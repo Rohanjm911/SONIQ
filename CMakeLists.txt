@@ -118,4 +118,13 @@ target_link_libraries(soniq_tests PRIVATE
     Qt6::Sql
 )
 
+if(WIN32)
+    target_link_options(soniq_tests PRIVATE -static-libstdc++ -static-libgcc)
+    add_custom_command(TARGET soniq_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:soniq_tests>
+            ${CMAKE_SOURCE_DIR}/dist/$<TARGET_FILE_NAME:soniq_tests>
+    )
+endif()
+
 add_test(NAME SoniqAutomatedTests COMMAND soniq_tests)
