@@ -8,7 +8,7 @@
 | `.aiff`, `.aif` | Audio Interchange File Format | Lossless | Yes (up to 192kHz / 24-bit) | Direct Header Sniffing & FFprobe | Direct High-Speed PCM & FFmpeg |
 | `.ape` | Monkey's Audio | Lossless | Yes | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
 | `.wv` | WavPack | Lossless / Hybrid | Yes | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
-| `.dsf`, `.dff` | Direct Stream Digital (DSD) | Lossless Bitstream | Yes (DSD64, DSD128, DSD256) | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
+| `.dsf`, `.dff` | Direct Stream Digital (DSD) | Lossless Bitstream | Yes (DSD64, DSD128, DSD256) | Direct DSF/DFF Chunk Parser & FFprobe | Native DoP v1.1 Unpacker & 64-tap FIR Decimator |
 | `.mp3` | MPEG-1 Audio Layer III | Lossy | No (44.1/48kHz, max 320kbps) | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
 | `.aac`, `.m4a` | Advanced Audio Coding | Lossy | No (up to 48kHz, max 320kbps) | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
 | `.ogg` | Ogg Vorbis | Lossy | No | FFprobe JSON Metadata Probe | FFmpeg Streaming Pipe |
