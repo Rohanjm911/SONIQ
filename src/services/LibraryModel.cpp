@@ -318,4 +318,19 @@ QVariantMap LibraryModel::getTrackAt(int row) const {
     return map;
 }
 
+std::vector<audio::QueueItem> LibraryModel::toQueueItems() const {
+    std::vector<audio::QueueItem> items;
+    items.reserve(m_tracks.size());
+    for (const auto& t : m_tracks) {
+        audio::QueueItem it;
+        it.filePath = t.filePath;
+        it.title = t.title;
+        it.artist = t.artist;
+        it.album = t.album;
+        it.durationSeconds = t.durationSeconds;
+        items.push_back(std::move(it));
+    }
+    return items;
+}
+
 } // namespace soniq::services

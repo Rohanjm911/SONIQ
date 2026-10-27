@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
     // 5. Instantiate Services
     soniq::services::PlaybackController playbackController(engine, &app);
     soniq::services::LibraryModel libraryModel(&app);
+    playbackController.setLibraryModel(&libraryModel);
     soniq::services::AudioInspectorService audioInspector(&app);
     soniq::services::DspService dspService(engine, &app);
     soniq::services::SettingsService settingsService(&app);

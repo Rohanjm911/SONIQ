@@ -62,6 +62,9 @@ public:
     [[nodiscard]] float peakLevelL() const noexcept { return m_peakL.load(std::memory_order_relaxed); }
     [[nodiscard]] float peakLevelR() const noexcept { return m_peakR.load(std::memory_order_relaxed); }
 
+    void setLibraryModel(class LibraryModel* model) noexcept { m_libraryModel = model; }
+    void updateCurrentTrackMetadata();
+
 public slots:
     void play();
     void pause();
@@ -92,6 +95,7 @@ private:
     static QString formatTime(double seconds);
 
     audio::AudioPlaybackEngine& m_engine;
+    class LibraryModel* m_libraryModel{nullptr};
     QTimer m_pollTimer;
 
     QString m_title{"No Track Loaded"};

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "database/DatabaseManager.hpp"
+#include "audio/PlaybackQueue.hpp"
 #include <QAbstractListModel>
 #include <vector>
 
@@ -39,6 +40,7 @@ public:
     [[nodiscard]] QString sortField() const { return m_sortField; }
     [[nodiscard]] bool sortAscending() const { return m_sortAscending; }
     [[nodiscard]] QString sortLabel() const;
+    [[nodiscard]] std::vector<audio::QueueItem> toQueueItems() const;
 
 public slots:
     void refresh();
