@@ -19,6 +19,7 @@ class DspService : public QObject {
     Q_PROPERTY(float stereoBalance READ stereoBalance WRITE setStereoBalance NOTIFY dspChanged)
     Q_PROPERTY(float stereoWidth READ stereoWidth WRITE setStereoWidth NOTIFY dspChanged)
     Q_PROPERTY(bool limiterEnabled READ limiterEnabled WRITE setLimiterEnabled NOTIFY dspChanged)
+    Q_PROPERTY(QString currentPreset READ currentPreset NOTIFY dspChanged)
     Q_PROPERTY(QStringList presets READ presets CONSTANT)
     Q_PROPERTY(bool altersSignal READ altersSignal NOTIFY dspChanged)
     Q_PROPERTY(QStringList disablingReasons READ disablingReasons NOTIFY dspChanged)
@@ -50,9 +51,12 @@ public:
     [[nodiscard]] bool limiterEnabled() const noexcept;
     void setLimiterEnabled(bool enable);
 
+    [[nodiscard]] QString currentPreset() const noexcept { return m_currentPreset; }
     [[nodiscard]] QStringList presets() const;
     [[nodiscard]] bool altersSignal() const noexcept;
     [[nodiscard]] QStringList disablingReasons() const;
+
+    Q_INVOKABLE double gainAtFrequency(double freq) const;
 
 public slots:
     void setBandGain10(int band, double gainDb);
@@ -64,7 +68,11 @@ signals:
     void dspChanged();
 
 private:
+    void saveSettings();
+    void loadSettings();
+
     audio::AudioPlaybackEngine& m_engine;
+    QString m_currentPreset{"Flat"};
 };
 
 } // namespace soniq::services

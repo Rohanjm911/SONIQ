@@ -42,6 +42,7 @@ void Equalizer::setMode(EqualizerMode mode) {
 }
 
 void Equalizer::setPreampDb(double gainDb) noexcept {
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_preampDb = std::clamp(gainDb, -24.0, 24.0);
     m_preampLinear = static_cast<float>(std::pow(10.0, m_preampDb / 20.0));
 }
@@ -89,6 +90,7 @@ void Equalizer::resetGains() noexcept {
 }
 
 void Equalizer::resetFilterStates() noexcept {
+    std::lock_guard<std::mutex> lock(m_mutex);
     for (auto& chFilters : m_filters) {
         for (auto& f : chFilters) {
             f.reset();
@@ -117,6 +119,7 @@ bool Equalizer::altersSignal() const noexcept {
 }
 
 void Equalizer::rebuildFilters() {
+    std::lock_guard<std::mutex> lock(m_mutex);
     size_t numBands = 0;
     if (m_mode == EqualizerMode::TenBand) {
         numBands = kNum10Bands;
@@ -173,6 +176,7 @@ void Equalizer::rebuildFilters() {
 void Equalizer::process(float* interleavedData, size_t frames, uint16_t channels) noexcept {
     if (!m_enabled || !altersSignal() || interleavedData == nullptr || frames == 0) return;
 
+    std::lock_guard<std::mutex> lock(m_mutex);
     const uint16_t activeChannels = std::min(channels, static_cast<uint16_t>(kMaxChannels));
 
     // 1. Preamp application
@@ -194,6 +198,7 @@ void Equalizer::process(float* interleavedData, size_t frames, uint16_t channels
 double Equalizer::gainAtFrequency(double freq) const noexcept {
     if (!m_enabled) return 0.0;
 
+    std::lock_guard<std::mutex> lock(m_mutex);
     double netGain = m_preampDb;
     if (m_filters[0].empty()) return netGain;
 

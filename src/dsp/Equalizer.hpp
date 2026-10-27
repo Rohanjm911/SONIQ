@@ -5,6 +5,7 @@
 #include <string>
 #include <array>
 #include <memory>
+#include <mutex>
 
 namespace soniq::dsp {
 
@@ -92,6 +93,7 @@ private:
     // Supports up to 8 channels (stereo is channels 0 and 1)
     static constexpr size_t kMaxChannels = 8;
     std::array<std::vector<BiquadFilter>, kMaxChannels> m_filters;
+    mutable std::mutex m_mutex;
 };
 
 } // namespace soniq::dsp
