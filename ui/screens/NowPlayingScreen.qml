@@ -8,13 +8,13 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        width: Math.min(680, parent.width - 48)
-        spacing: 24
+        width: Math.min(780, parent.width - 48)
+        spacing: root.height > 700 ? 28 : 18
 
         // Large Album Artwork Panel
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(300, parent.width - 64)
+            width: Math.min(420, Math.min(parent.width - 64, Math.max(240, root.height * 0.44)))
             height: width
             radius: Theme.cornerRadiusLarge
             color: Colors.surfaceElevated

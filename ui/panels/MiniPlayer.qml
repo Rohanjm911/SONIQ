@@ -8,20 +8,22 @@ Rectangle {
 
     signal expandRequested()
     signal queueToggleRequested()
+    signal fullscreenToggleRequested()
 
     height: Theme.miniPlayerHeight
     color: Colors.surface
     border.color: Colors.borderSubtle
     border.width: 1
 
-    Row {
+    Item {
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
-        spacing: 16
 
-        // 1. Artwork Thumbnail & Track Details
+        // 1. Left Group: Artwork Thumbnail & Track Details
         Row {
+            id: leftGroup
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
             width: 260
             height: parent.height
             spacing: 12
@@ -85,11 +87,11 @@ Rectangle {
             }
         }
 
-        // 2. Playback Controls & Timeline Scrubber
+        // 2. Center Group: Transport Controls & Timeline Scrubber (Centered in window)
         Column {
-            width: parent.width - 560
-            height: parent.height
-            anchors.verticalCenter: parent.verticalCenter
+            id: centerGroup
+            anchors.centerIn: parent
+            width: Math.min(680, Math.max(280, parent.width - leftGroup.width - rightGroup.width - 48))
             spacing: 2
 
             // Transport buttons
@@ -185,10 +187,11 @@ Rectangle {
             }
         }
 
-        // 3. Audio Telemetry & Volume Controls
+        // 3. Right Group: Audio Telemetry, Volume, Queue & Fullscreen Controls
         Row {
-            width: 250
-            height: parent.height
+            id: rightGroup
+            anchors.right: parent.right
+            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
 
@@ -207,6 +210,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 iconSymbol: playbackController.isMuted ? "🔇" : (playbackController.volume > 0.5 ? "🔊" : "🔉")
                 iconPixelSize: 14
+                tooltipText: playbackController.isMuted ? "Unmute" : "Mute"
                 onClicked: playbackController.setMuted(!playbackController.isMuted)
             }
 
@@ -227,6 +231,15 @@ Rectangle {
                 iconPixelSize: 16
                 tooltipText: "Playback Queue"
                 onClicked: root.queueToggleRequested()
+            }
+
+            // Fullscreen Toggle Button
+            SoniqIconButton {
+                anchors.verticalCenter: parent.verticalCenter
+                iconSymbol: (window && window.visibility === Window.FullScreen) ? "🗗" : "⛶"
+                iconPixelSize: 15
+                tooltipText: (window && window.visibility === Window.FullScreen) ? "Exit Fullscreen (F11/Esc)" : "Fullscreen (F11)"
+                onClicked: root.fullscreenToggleRequested()
             }
         }
     }

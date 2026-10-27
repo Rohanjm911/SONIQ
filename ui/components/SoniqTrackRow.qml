@@ -40,16 +40,20 @@ Rectangle {
         onDoubleClicked: root.playClicked()
     }
 
+    // 1. Left Group: Number + Thumbnail + Title/Artist
     Row {
-        anchors.fill: parent
+        id: leftGroup
+        anchors.left: parent.left
         anchors.leftMargin: 12
-        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        width: Math.max(180, (parent.width - rightGroup.width - 80) * 0.50)
         spacing: 12
 
         // Number / Play indicator
         Item {
             width: 28
             height: parent.height
+            anchors.verticalCenter: parent.verticalCenter
 
             Text {
                 visible: !mouseArea.containsMouse && !root.isPlaying
@@ -96,9 +100,9 @@ Rectangle {
             }
         }
 
-        // Title and Format
+        // Title and Artist Column
         Column {
-            width: parent.width * 0.42
+            width: parent.width - 28 - (root.artworkPath.length > 0 ? 44 : 0)
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
@@ -121,24 +125,40 @@ Rectangle {
                 elide: Text.ElideRight
             }
         }
+    }
 
-        // Album
-        Text {
-            width: parent.width * 0.30
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.album
-            font.family: Typography.fontFamily
-            font.pixelSize: Typography.sizeBody
-            color: Colors.textSecondary
-            elide: Text.ElideRight
-        }
+    // 2. Center: Flexible Album Column
+    Text {
+        id: albumText
+        anchors.left: leftGroup.right
+        anchors.leftMargin: 16
+        anchors.right: rightGroup.left
+        anchors.rightMargin: 16
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.album
+        font.family: Typography.fontFamily
+        font.pixelSize: Typography.sizeBody
+        color: Colors.textSecondary
+        elide: Text.ElideRight
+        visible: width > 40
+    }
+
+    // 3. Right Group: Format Badge + Favorite + Duration (Pinned to right edge)
+    Row {
+        id: rightGroup
+        anchors.right: parent.right
+        anchors.rightMargin: 16
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 12
 
         // Format Badge
         Item {
-            width: 60
-            height: parent.height
+            width: 58
+            height: 24
+            anchors.verticalCenter: parent.verticalCenter
+
             SoniqBadge {
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.centerIn: parent
                 badgeText: root.format.toUpperCase()
                 variant: (root.format.toUpperCase() === "FLAC" || root.format.toUpperCase() === "WAV") ? "hires" : "standard"
             }
@@ -146,8 +166,10 @@ Rectangle {
 
         // Favorite Button
         Item {
-            width: 32
-            height: parent.height
+            width: 28
+            height: 28
+            anchors.verticalCenter: parent.verticalCenter
+
             SoniqIconButton {
                 anchors.centerIn: parent
                 iconSymbol: root.isFavorite ? "♥" : "♡"
@@ -159,7 +181,9 @@ Rectangle {
 
         // Duration
         Text {
+            width: 44
             anchors.verticalCenter: parent.verticalCenter
+            horizontalAlignment: Text.AlignRight
             text: root.duration
             font.family: Typography.monospaceFamily
             font.pixelSize: Typography.sizeBody

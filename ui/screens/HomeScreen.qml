@@ -200,8 +200,9 @@ Item {
 
                 ListView {
                     width: parent.width
-                    height: Math.min(240, count * 48)
+                    height: Math.min(15, count) * 52
                     model: libraryModel
+                    interactive: false
                     clip: true
                     spacing: 4
 

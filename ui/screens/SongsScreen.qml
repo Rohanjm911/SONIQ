@@ -99,13 +99,14 @@ Item {
             width: parent.width
             height: 32
             color: "transparent"
-            border.color: Colors.borderSubtle
-            border.width: 0
 
+            // 1. Left Group: # and TITLE
             Row {
-                anchors.fill: parent
+                id: headerLeftGroup
+                anchors.left: parent.left
                 anchors.leftMargin: 12
-                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(180, (parent.width - 154 - 80) * 0.50)
                 spacing: 12
 
                 Text {
@@ -119,7 +120,6 @@ Item {
                 }
 
                 Text {
-                    width: parent.width * 0.42
                     text: "TITLE"
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
@@ -127,43 +127,62 @@ Item {
                     color: Colors.textMuted
                     anchors.verticalCenter: parent.verticalCenter
                 }
+            }
+
+            // 2. Center: ALBUM
+            Text {
+                id: headerAlbum
+                anchors.left: headerLeftGroup.right
+                anchors.leftMargin: 16
+                anchors.right: headerRightGroup.left
+                anchors.rightMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
+                text: "ALBUM"
+                font.family: Typography.monospaceFamily
+                font.pixelSize: Typography.sizeMicro
+                font.weight: Typography.weightBold
+                color: Colors.textMuted
+                elide: Text.ElideRight
+            }
+
+            // 3. Right Group: FORMAT + FAV + TIME
+            Row {
+                id: headerRightGroup
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 12
 
                 Text {
-                    width: parent.width * 0.30
-                    text: "ALBUM"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Text {
-                    width: 60
+                    width: 58
                     text: "FORMAT"
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
                     color: Colors.textMuted
+                    horizontalAlignment: Text.AlignHCenter
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Text {
-                    width: 32
+                    width: 28
                     text: "FAV"
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
                     color: Colors.textMuted
+                    horizontalAlignment: Text.AlignHCenter
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Text {
+                    width: 44
                     text: "TIME"
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
                     color: Colors.textMuted
+                    horizontalAlignment: Text.AlignRight
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }
@@ -173,7 +192,7 @@ Item {
         ListView {
             id: trackListView
             width: parent.width
-            height: parent.height - 110
+            height: Math.max(100, parent.height - y)
             clip: true
             model: libraryModel
             spacing: 2

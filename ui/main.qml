@@ -154,6 +154,33 @@ ApplicationWindow {
             onQueueToggleRequested: {
                 window.queueOpen = !window.queueOpen;
             }
+            onFullscreenToggleRequested: {
+                if (window.visibility === Window.FullScreen) {
+                    window.visibility = Window.Windowed;
+                } else {
+                    window.visibility = Window.FullScreen;
+                }
+            }
+        }
+
+        // Keyboard Shortcuts
+        Shortcut {
+            sequence: "F11"
+            onActivated: {
+                if (window.visibility === Window.FullScreen) {
+                    window.visibility = Window.Windowed;
+                } else {
+                    window.visibility = Window.FullScreen;
+                }
+            }
+        }
+
+        Shortcut {
+            sequence: "Escape"
+            enabled: window.visibility === Window.FullScreen
+            onActivated: {
+                window.visibility = Window.Windowed;
+            }
         }
 
         // Slide-in Queue Drawer from right
