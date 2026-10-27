@@ -48,16 +48,16 @@ Rectangle {
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeTitleMedium
                     font.weight: Typography.weightBold
+                    font.letterSpacing: 1.5
                     color: Colors.textPrimary
-                    letterSpacing: 1.5
                 }
                 Text {
                     text: "PURE SOUND"
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
+                    font.letterSpacing: 1.0
                     color: Colors.textMuted
-                    letterSpacing: 1.0
                 }
             }
         }

@@ -13,14 +13,17 @@
         <file>ui/components/SoniqBadge.qml</file>
         <file>ui/components/SoniqTrackRow.qml</file>
         <file>ui/components/SoniqSpectrum.qml</file>
+        <file>ui/components/qmldir</file>
         <file>ui/panels/NavigationSidebar.qml</file>
         <file>ui/panels/MiniPlayer.qml</file>
         <file>ui/panels/QueueDrawer.qml</file>
+        <file>ui/panels/qmldir</file>
         <file>ui/screens/HomeScreen.qml</file>
         <file>ui/screens/SongsScreen.qml</file>
         <file>ui/screens/NowPlayingScreen.qml</file>
         <file>ui/screens/EqualizerScreen.qml</file>
         <file>ui/screens/AudioInspectorScreen.qml</file>
         <file>ui/screens/SettingsScreen.qml</file>
+        <file>ui/screens/qmldir</file>
     </qresource>
 </RCC>

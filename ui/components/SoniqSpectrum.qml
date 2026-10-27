@@ -4,8 +4,8 @@ import "../themes"
 Item {
     id: root
 
-    property float peakL: 0.0
-    property float peakR: 0.0
+    property real peakL: 0.0
+    property real peakR: 0.0
     property bool active: false
     property color barColor: Colors.accent
 

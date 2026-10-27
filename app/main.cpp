@@ -3,6 +3,8 @@
 #include <QQmlContext>
 #include <QIcon>
 #include <QQuickStyle>
+#include <QFile>
+#include <QDir>
 
 #include "core/Logger.hpp"
 #include "database/DatabaseManager.hpp"
@@ -59,24 +61,53 @@ int main(int argc, char* argv[]) {
     qmlEngine.rootContext()->setContextProperty("libraryScanner", &libraryScanner);
 
     const QUrl url(QStringLiteral("qrc:/ui/main.qml"));
+    QObject::connect(&qmlEngine, &QQmlApplicationEngine::warnings, [](const QList<QQmlError>& errors) {
+        for (const auto& err : errors) {
+            SONIQ_LOG_ERROR("QML Diagnostic Error: {}", err.toString().toStdString());
+        }
+    });
+
     QObject::connect(&qmlEngine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject* obj, const QUrl& objUrl) {
         if (!obj && url == objUrl) {
-            SONIQ_LOG_CRIT("Failed to load root QML interface.");
-            QCoreApplication::exit(-1);
+            SONIQ_LOG_CRIT("Failed to load root QML interface from QRC.");
         }
     }, Qt::QueuedConnection);
 
-    // Fallback direct file load if resources not embedded
     qmlEngine.addImportPath("qrc:/");
-    qmlEngine.load(QUrl::fromLocalFile(app.applicationDirPath() + "/../../ui/main.qml"));
+    qmlEngine.addImportPath("qrc:/ui");
+
+    // Primary: Load from compiled QRC resources
+    qmlEngine.load(url);
+
+    // Fallbacks for local file development
     if (qmlEngine.rootObjects().isEmpty()) {
-        qmlEngine.load(QUrl::fromLocalFile(app.applicationDirPath() + "/ui/main.qml"));
+        QString p1 = app.applicationDirPath() + "/../ui/main.qml";
+        if (QFile::exists(p1)) {
+            qmlEngine.addImportPath(app.applicationDirPath() + "/..");
+            qmlEngine.load(QUrl::fromLocalFile(p1));
+        }
     }
     if (qmlEngine.rootObjects().isEmpty()) {
-        qmlEngine.load(QUrl(QStringLiteral("d:/projects and certificates/projects/apps/SONIQ/ui/main.qml")));
+        QString p2 = app.applicationDirPath() + "/ui/main.qml";
+        if (QFile::exists(p2)) {
+            qmlEngine.addImportPath(app.applicationDirPath());
+            qmlEngine.load(QUrl::fromLocalFile(p2));
+        }
+    }
+    if (qmlEngine.rootObjects().isEmpty()) {
+        QString p3 = QDir::currentPath() + "/ui/main.qml";
+        if (QFile::exists(p3)) {
+            qmlEngine.addImportPath(QDir::currentPath());
+            qmlEngine.load(QUrl::fromLocalFile(p3));
+        }
     }
 
-    SONIQ_LOG_INFO("UI initialized. Entering main event loop.");
+    if (qmlEngine.rootObjects().isEmpty()) {
+        SONIQ_LOG_CRIT("Fatal: Could not load main.qml component.");
+        return -1;
+    }
+
+    SONIQ_LOG_INFO("UI initialized successfully. Entering main event loop.");
     return app.exec();
 }

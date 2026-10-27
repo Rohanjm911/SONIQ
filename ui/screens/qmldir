@@ -1,0 +1,6 @@
+HomeScreen 1.0 HomeScreen.qml
+SongsScreen 1.0 SongsScreen.qml
+NowPlayingScreen 1.0 NowPlayingScreen.qml
+EqualizerScreen 1.0 EqualizerScreen.qml
+AudioInspectorScreen 1.0 AudioInspectorScreen.qml
+SettingsScreen 1.0 SettingsScreen.qml
