@@ -61,6 +61,7 @@ public:
     int64_t insertOrUpdateTrack(const TrackRecord& track);
     bool removeTrack(int64_t trackId);
     bool removeTrackByPath(const std::string& filePath);
+    bool clearAllTracks();
     std::vector<TrackRecord> getAllTracks(const std::string& sortBy = "title ASC");
     std::vector<TrackRecord> searchTracks(const std::string& query);
     std::vector<TrackRecord> getFavoriteTracks();

@@ -28,7 +28,23 @@ void LibraryScanner::cancel() {
     }
 }
 
-void LibraryScanner::scanDirectory(const QString& directoryPath) {
+bool LibraryScanner::replaceOnScan() const {
+    return db::DatabaseManager::instance().getPreference("replace_on_scan", "1") != "0";
+}
+
+void LibraryScanner::setReplaceOnScan(bool replace) {
+    db::DatabaseManager::instance().setPreference("replace_on_scan", replace ? "1" : "0");
+    emit replaceOnScanChanged();
+}
+
+void LibraryScanner::clearLibrary() {
+    cancel();
+    SONIQ_LOG_INFO("Manual library clear executed.");
+    db::DatabaseManager::instance().clearAllTracks();
+    emit scanFinished(0, 0);
+}
+
+void LibraryScanner::scanDirectory(const QString& directoryPath, bool replaceExisting) {
     if (m_scanning) {
         SONIQ_LOG_WARN("Scan already in progress, ignoring duplicate request.");
         return;
@@ -67,10 +83,11 @@ void LibraryScanner::scanDirectory(const QString& directoryPath) {
     emit scanningChanged();
     emit scanProgressChanged();
 
-    m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, cleanPath);
+    bool doReplace = replaceExisting && replaceOnScan();
+    m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, cleanPath, doReplace);
 }
 
-void LibraryScanner::doScan(const QString& path) {
+void LibraryScanner::doScan(const QString& path, bool replaceExisting) {
     emit scanStarted(path);
 
     namespace fs = std::filesystem;
@@ -90,6 +107,11 @@ void LibraryScanner::doScan(const QString& path) {
         }
     } else {
         SONIQ_LOG_ERROR("Scan target directory does not exist or is not a directory: {}", path.toStdString());
+    }
+
+    if (replaceExisting) {
+        SONIQ_LOG_INFO("Single folder mode: replacing existing library with folder {}", path.toStdString());
+        db::DatabaseManager::instance().clearAllTracks();
     }
 
     const int total = static_cast<int>(audioFiles.size());
@@ -134,6 +156,10 @@ void LibraryScanner::doScan(const QString& path) {
                 addedCount++;
             }
         }
+    }
+
+    if (!m_cancelRequested && addedCount > 0) {
+        db::DatabaseManager::instance().setPreference("last_scanned_folder", path.toStdString());
     }
 
     m_scanning = false;

@@ -54,6 +54,7 @@ public slots:
     void sortBy(const QString& field);
     void setSort(const QString& field, bool ascending);
     void shuffleList();
+    void clearLibrary();
 
 signals:
     void countChanged();

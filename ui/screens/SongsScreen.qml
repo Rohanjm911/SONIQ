@@ -116,6 +116,16 @@ Item {
                     iconText: "＋"
                     onClicked: folderDialog.open()
                 }
+
+                // Clear Library Button
+                SoniqButton {
+                    id: clearLibraryBtn
+                    variant: "secondary"
+                    text: "Clear"
+                    iconText: "🗑"
+                    visible: libraryModel.count > 0
+                    onClicked: libraryModel.clearLibrary()
+                }
             }
         }
 

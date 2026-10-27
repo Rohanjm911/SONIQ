@@ -333,4 +333,9 @@ std::vector<audio::QueueItem> LibraryModel::toQueueItems() const {
     return items;
 }
 
+void LibraryModel::clearLibrary() {
+    db::DatabaseManager::instance().clearAllTracks();
+    refresh();
+}
+
 } // namespace soniq::services

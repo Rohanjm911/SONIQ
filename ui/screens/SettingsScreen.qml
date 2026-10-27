@@ -255,6 +255,106 @@ ScrollView {
             }
         }
 
+        // Section: LIBRARY MANAGEMENT
+        Column {
+            width: parent.width
+            spacing: 12
+
+            Text {
+                text: "LIBRARY MANAGEMENT"
+                font.family: Typography.monospaceFamily
+                font.pixelSize: Typography.sizeMicro
+                font.weight: Typography.weightBold
+                color: Colors.textMuted
+                leftPadding: 4
+            }
+
+            SoniqCard {
+                width: parent.width
+                height: 140
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 16
+
+                    // Single Folder Mode Toggle
+                    Item {
+                        width: parent.width
+                        height: 40
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: singleFolderSwitch.left
+                            anchors.rightMargin: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+
+                            Text {
+                                text: "Single Folder Mode"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                            }
+                            Text {
+                                text: "Keep only one active music folder in the library at a time (replaces on scan)"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                            }
+                        }
+
+                        Switch {
+                            id: singleFolderSwitch
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            checked: libraryScanner.replaceOnScan
+                            onToggled: libraryScanner.replaceOnScan = checked
+                        }
+                    }
+
+                    // Clear Library
+                    Item {
+                        width: parent.width
+                        height: 40
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: clearLibBtn.left
+                            anchors.rightMargin: 16
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+
+                            Text {
+                                text: "Purge Library"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                            }
+                            Text {
+                                text: "Remove all " + libraryModel.count + " tracks from local cache and start fresh"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                            }
+                        }
+
+                        SoniqButton {
+                            id: clearLibBtn
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            variant: "secondary"
+                            text: "Clear Library"
+                            iconText: "🗑"
+                            onClicked: libraryModel.clearLibrary()
+                        }
+                    }
+                }
+            }
+        }
+
         // Section: ABOUT SONIQ
         Column {
             width: parent.width

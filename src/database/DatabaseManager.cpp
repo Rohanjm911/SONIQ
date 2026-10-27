@@ -301,6 +301,13 @@ bool DatabaseManager::removeTrackByPath(const std::string& filePath) {
     return query.exec();
 }
 
+bool DatabaseManager::clearAllTracks() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
+    query.exec("DELETE FROM playlist_tracks;");
+    return query.exec("DELETE FROM tracks;");
+}
+
 static TrackRecord readTrackRecord(const QSqlQuery& q) {
     TrackRecord r;
     r.id = q.value("id").toLongLong();
