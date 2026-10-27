@@ -1,4 +1,21 @@
-# SONIQ — Pure Sound. Infinite Possibilities.
+<div align="center">
+  <img src="ui/assets/logo_full.png" alt="SONIQ Logo" width="420" />
+
+  <br />
+
+  # SONIQ
+  ### *Pure Sound. Infinite Possibilities.*
+
+  **Offline-First, Cross-Platform Audiophile Desktop Music Player**
+
+  [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
+  [![Qt 6](https://img.shields.io/badge/Qt-6.8-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
+  [![WASAPI](https://img.shields.io/badge/Audio-WASAPI%20Bit--Perfect-0078D4?logo=windows&logoColor=white)]()
+  [![DSD / DoP](https://img.shields.io/badge/Hi--Res-Native%20DSD%20%2F%20DoP-FF6F00)]()
+  [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+</div>
+
+---
 
 SONIQ is a modern, offline-first, cross-platform audiophile desktop music player for Windows, Linux, and macOS. Built with modern **C++20**, **Qt 6**, **Qt Quick/QML**, and native platform audio drivers (**WASAPI Exclusive Mode** on Windows), SONIQ delivers bit-perfect audio reproduction, studio-grade 64-bit DSP filtering, high-performance local library indexing, and a clean, responsive desktop user experience.
 
