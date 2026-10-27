@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <atomic>
 
 namespace soniq::services {
 
@@ -51,21 +52,15 @@ public:
     [[nodiscard]] QString durationFormatted() const;
 
     [[nodiscard]] float volume() const noexcept;
-    void setVolume(float vol);
-
     [[nodiscard]] bool isMuted() const noexcept;
-    void setMuted(bool mute);
-
     [[nodiscard]] int repeatMode() const noexcept;
-    void setRepeatMode(int mode);
-
     [[nodiscard]] bool isShuffle() const noexcept;
 
     [[nodiscard]] QString bitPerfectStatus() const;
     [[nodiscard]] QString bitPerfectExplanation() const;
 
-    [[nodiscard]] float peakLevelL() const noexcept { return m_peakL; }
-    [[nodiscard]] float peakLevelR() const noexcept { return m_peakR; }
+    [[nodiscard]] float peakLevelL() const noexcept { return m_peakL.load(std::memory_order_relaxed); }
+    [[nodiscard]] float peakLevelR() const noexcept { return m_peakR.load(std::memory_order_relaxed); }
 
 public slots:
     void play();
@@ -77,6 +72,9 @@ public slots:
     void seek(double seconds);
     void playFile(const QString& path);
     void toggleShuffle();
+    void setVolume(float vol);
+    void setMuted(bool mute);
+    void setRepeatMode(int mode);
 
 signals:
     void stateChanged();
@@ -103,8 +101,8 @@ private:
     QString m_filePath;
     QString m_artworkPath;
 
-    float m_peakL{0.0f};
-    float m_peakR{0.0f};
+    std::atomic<float> m_peakL{0.0f};
+    std::atomic<float> m_peakR{0.0f};
 };
 
 } // namespace soniq::services

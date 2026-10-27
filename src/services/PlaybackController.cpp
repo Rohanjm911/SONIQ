@@ -3,6 +3,7 @@
 #include "metadata/ArtworkExtractor.hpp"
 #include "database/DatabaseManager.hpp"
 #include <cmath>
+#include <filesystem>
 
 namespace soniq::services {
 
@@ -11,34 +12,38 @@ PlaybackController::PlaybackController(audio::AudioPlaybackEngine& engine, QObje
     , m_engine(engine) {
 
     m_engine.setStateChangedCallback([this](core::PlaybackState) {
-        emit stateChanged();
-        emit bitPerfectChanged();
+        QMetaObject::invokeMethod(this, [this]() {
+            emit stateChanged();
+            emit bitPerfectChanged();
+        }, Qt::QueuedConnection);
     });
 
     m_engine.setVisualizerCallback([this](const audio::EngineVisualizerData& viz) {
-        m_peakL = viz.peakLevelL;
-        m_peakR = viz.peakLevelR;
-        emit visualizerChanged();
+        m_peakL.store(viz.peakLevelL, std::memory_order_relaxed);
+        m_peakR.store(viz.peakLevelR, std::memory_order_relaxed);
     });
 
     m_engine.setTrackEndedCallback([this]() {
-        auto cur = m_engine.queue().currentItem();
-        if (cur.has_value()) {
-            m_title = QString::fromStdString(cur->title);
-            m_artist = QString::fromStdString(cur->artist);
-            m_album = QString::fromStdString(cur->album);
-            m_filePath = QString::fromStdString(cur->filePath);
-            m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(cur->filePath));
-            emit trackChanged();
-            emit durationChanged();
-            emit bitPerfectChanged();
-        }
+        QMetaObject::invokeMethod(this, [this]() {
+            auto cur = m_engine.queue().currentItem();
+            if (cur.has_value()) {
+                m_title = QString::fromStdString(cur->title);
+                m_artist = QString::fromStdString(cur->artist);
+                m_album = QString::fromStdString(cur->album);
+                m_filePath = QString::fromStdString(cur->filePath);
+                m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(cur->filePath));
+                emit trackChanged();
+                emit durationChanged();
+                emit bitPerfectChanged();
+            }
+        }, Qt::QueuedConnection);
     });
 
     connect(&m_pollTimer, &QTimer::timeout, this, [this]() {
         emit positionChanged();
+        emit visualizerChanged();
     });
-    m_pollTimer.start(100); // 10 Hz UI position updates
+    m_pollTimer.start(50); // 20 Hz safe GUI thread updates
 }
 
 PlaybackController::~PlaybackController() = default;
@@ -221,20 +226,32 @@ void PlaybackController::seek(double seconds) {
 
 void PlaybackController::playFile(const QString& path) {
     std::string stdPath = path.toStdString();
+    if (stdPath.empty()) return;
+
     auto inspection = metadata::AudioProbe::probeFile(stdPath);
 
-    m_title = QString::fromStdString(inspection.metadata.title);
-    m_artist = QString::fromStdString(inspection.metadata.artist);
-    m_album = QString::fromStdString(inspection.metadata.album);
+    std::string title = !inspection.metadata.title.empty()
+                        ? inspection.metadata.title
+                        : std::filesystem::path(stdPath).stem().string();
+    std::string artist = !inspection.metadata.artist.empty()
+                         ? inspection.metadata.artist
+                         : "Unknown Artist";
+    std::string album = !inspection.metadata.album.empty()
+                        ? inspection.metadata.album
+                        : "Unknown Album";
+
+    m_title = QString::fromStdString(title);
+    m_artist = QString::fromStdString(artist);
+    m_album = QString::fromStdString(album);
     m_format = QString::fromStdString(inspection.format.toDetailedString());
     m_filePath = path;
     m_artworkPath = QString::fromStdString(metadata::ArtworkExtractor::instance().getOrExtractArtwork(stdPath));
 
     audio::QueueItem item;
     item.filePath = stdPath;
-    item.title = inspection.metadata.title;
-    item.artist = inspection.metadata.artist;
-    item.album = inspection.metadata.album;
+    item.title = title;
+    item.artist = artist;
+    item.album = album;
     item.durationSeconds = inspection.metadata.durationSeconds;
 
     m_engine.queue().clear();

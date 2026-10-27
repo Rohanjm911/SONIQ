@@ -115,11 +115,11 @@ private:
     std::atomic<bool> m_lookaheadLoading{false};
     std::string m_lookaheadTargetFile;
     std::thread m_lookaheadWorker;
-    std::mutex m_lookaheadMutex;
+    mutable std::recursive_mutex m_lookaheadMutex;
 
     std::thread m_audioThread;
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
+    mutable std::recursive_mutex m_mutex;
+    std::condition_variable_any m_cv;
 
     VisualizerCallback m_visualizerCallback;
     StateChangedCallback m_stateCallback;

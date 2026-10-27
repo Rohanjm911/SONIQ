@@ -47,7 +47,7 @@ std::unique_ptr<AudioDecoder> AudioPlaybackEngine::createDecoder(const std::stri
 }
 
 void AudioPlaybackEngine::setOutputBackend(std::unique_ptr<IAudioOutput> output) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (m_output) {
         m_output->stop();
         m_output->close();
@@ -66,10 +66,10 @@ void AudioPlaybackEngine::setState(core::PlaybackState newState) {
 void AudioPlaybackEngine::clearLookahead() {
     m_lookaheadReady = false;
     m_lookaheadLoading = false;
-    if (m_lookaheadWorker.joinable()) {
+    if (m_lookaheadWorker.joinable() && m_lookaheadWorker.get_id() != std::this_thread::get_id()) {
         m_lookaheadWorker.join();
     }
-    std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+    std::lock_guard<std::recursive_mutex> lock(m_lookaheadMutex);
     m_lookaheadDecoder.reset();
     m_lookaheadTargetFile.clear();
 }
@@ -79,7 +79,7 @@ void AudioPlaybackEngine::startLookaheadWorker(const std::string& filePath) {
     m_lookaheadLoading = true;
     m_lookaheadTargetFile = filePath;
 
-    if (m_lookaheadWorker.joinable()) {
+    if (m_lookaheadWorker.joinable() && m_lookaheadWorker.get_id() != std::this_thread::get_id()) {
         m_lookaheadWorker.join();
     }
 
@@ -87,7 +87,7 @@ void AudioPlaybackEngine::startLookaheadWorker(const std::string& filePath) {
         auto dec = createDecoder(filePath);
         auto res = dec->open(filePath);
         if (res.isOk()) {
-            std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+            std::lock_guard<std::recursive_mutex> lock(m_lookaheadMutex);
             m_lookaheadDecoder = std::move(dec);
             m_lookaheadReady = true;
             SONIQ_LOG_INFO("Lookahead pre-buffering ready for next track: {}", filePath);
@@ -99,8 +99,11 @@ void AudioPlaybackEngine::startLookaheadWorker(const std::string& filePath) {
 }
 
 core::Result<void> AudioPlaybackEngine::playTrack(const std::string& filePath) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     setState(core::PlaybackState::Buffering);
+    if (m_output) {
+        m_output->stop();
+    }
     clearLookahead();
 
     m_decoder = createDecoder(filePath);
@@ -151,7 +154,7 @@ void AudioPlaybackEngine::pause() {
 }
 
 void AudioPlaybackEngine::stop() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     clearLookahead();
     if (m_output) m_output->stop();
     if (m_decoder) m_decoder->close();
@@ -264,7 +267,7 @@ std::string AudioPlaybackEngine::bitPerfectStatusExplanation() const {
 }
 
 void AudioPlaybackEngine::setVisualizerCallback(VisualizerCallback cb) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_visualizerCallback = std::move(cb);
 }
 
@@ -283,7 +286,7 @@ void AudioPlaybackEngine::audioThreadLoop() {
 
     while (!m_stopThread) {
         if (m_state != core::PlaybackState::Playing) {
-            std::unique_lock<std::mutex> lock(m_mutex);
+            std::unique_lock<std::recursive_mutex> lock(m_mutex);
             m_cv.wait_for(lock, std::chrono::milliseconds(20), [this] {
                 return m_stopThread || m_state == core::PlaybackState::Playing || m_pendingSeek.load() >= 0.0;
             });
@@ -293,7 +296,7 @@ void AudioPlaybackEngine::audioThreadLoop() {
         // Handle seek if pending
         double seekSec = m_pendingSeek.exchange(-1.0);
         if (seekSec >= 0.0) {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
             if (m_decoder && m_decoder->isOpen()) {
                 m_decoder->seek(seekSec);
                 m_positionSeconds = m_decoder->positionSeconds();
@@ -322,7 +325,7 @@ void AudioPlaybackEngine::audioThreadLoop() {
         size_t framesRead = 0;
         uint16_t ch = 2;
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
             if (m_decoder && m_decoder->isOpen() && !m_decoder->isEof()) {
                 ch = m_decoder->format().channels() > 0 ? m_decoder->format().channels() : 2;
                 if (readBuffer.size() < kBlockFrames * ch) {
@@ -335,7 +338,7 @@ void AudioPlaybackEngine::audioThreadLoop() {
 
         // Equal-Power Crossfading logic
         if (m_crossfadeEnabled.load() && m_lookaheadReady.load() && remainingSec <= m_crossfadeSeconds.load() && remainingSec > 0.0 && framesRead > 0) {
-            std::lock_guard<std::mutex> lock(m_lookaheadMutex);
+            std::lock_guard<std::recursive_mutex> lock(m_lookaheadMutex);
             if (m_lookaheadDecoder && m_lookaheadDecoder->isOpen() && !m_lookaheadDecoder->isEof()) {
                 if (crossfadeBuffer.size() < framesRead * ch) {
                     crossfadeBuffer.resize(framesRead * ch);
@@ -358,35 +361,41 @@ void AudioPlaybackEngine::audioThreadLoop() {
 
         // Track EOF or transition
         if (framesRead == 0) {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            std::lock_guard<std::mutex> lookaheadLock(m_lookaheadMutex);
+            bool handledGapless = false;
+            {
+                std::lock_guard<std::recursive_mutex> lock(m_mutex);
+                std::lock_guard<std::recursive_mutex> lookaheadLock(m_lookaheadMutex);
 
-            if (m_lookaheadReady && m_lookaheadDecoder && m_lookaheadDecoder->isOpen()) {
-                bool matchingFormat = (m_decoder &&
-                                       m_decoder->format().sampleRate() == m_lookaheadDecoder->format().sampleRate() &&
-                                       m_decoder->format().channels() == m_lookaheadDecoder->format().channels());
+                if (m_lookaheadReady && m_lookaheadDecoder && m_lookaheadDecoder->isOpen()) {
+                    bool matchingFormat = (m_decoder &&
+                                           m_decoder->format().sampleRate() == m_lookaheadDecoder->format().sampleRate() &&
+                                           m_decoder->format().channels() == m_lookaheadDecoder->format().channels());
 
-                m_decoder = std::move(m_lookaheadDecoder);
-                m_queue.advanceNext();
-                m_durationSeconds = m_decoder->durationSeconds();
-                m_positionSeconds = m_decoder->positionSeconds();
-                m_lookaheadReady = false;
-                m_lookaheadLoading = false;
+                    m_decoder = std::move(m_lookaheadDecoder);
+                    m_queue.advanceNext();
+                    m_durationSeconds = m_decoder->durationSeconds();
+                    m_positionSeconds = m_decoder->positionSeconds();
+                    m_lookaheadReady = false;
+                    m_lookaheadLoading = false;
 
-                if (matchingFormat) {
-                    // Seamless gapless: keep WASAPI stream running without restart
-                    SONIQ_LOG_INFO("Seamless gapless transition executed (output format preserved)");
-                } else {
-                    // Format changed: reconfigure output
-                    auto format = m_decoder->format();
-                    m_dsp.setSampleRate(format.sampleRate());
-                    if (m_output) {
-                        m_output->open(format, "", core::OutputMode::Shared);
-                        m_output->start();
+                    if (matchingFormat) {
+                        // Seamless gapless: keep WASAPI stream running without restart
+                        SONIQ_LOG_INFO("Seamless gapless transition executed (output format preserved)");
+                    } else {
+                        // Format changed: reconfigure output
+                        auto format = m_decoder->format();
+                        m_dsp.setSampleRate(format.sampleRate());
+                        if (m_output) {
+                            m_output->open(format, "", core::OutputMode::Shared);
+                            m_output->start();
+                        }
+                        SONIQ_LOG_INFO("Gapless transition with format adaptation: {} Hz", format.sampleRate());
                     }
-                    SONIQ_LOG_INFO("Gapless transition with format adaptation: {} Hz", format.sampleRate());
+                    handledGapless = true;
                 }
+            }
 
+            if (handledGapless) {
                 if (m_trackEndedCallback) {
                     m_trackEndedCallback();
                 }
