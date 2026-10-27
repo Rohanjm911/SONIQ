@@ -1,0 +1,943 @@
+# SONIQ
+
+## Pure Sound. Infinite Possibilities.
+
+### ROLE AND OBJECTIVE
+
+Act as a senior C++ software architect, cross-platform desktop application developer, audio-engine engineer, digital signal processing specialist, Qt/QML UI engineer, and software testing engineer.
+
+Your task is to design, develop, test, and prepare a complete desktop music player named SONIQ.
+
+SONIQ must be a premium, offline-first, cross-platform music player for Windows, Linux, and macOS. It should combine extensive audio-format compatibility, audiophile-oriented playback, powerful music library management, advanced DSP, optional online music metadata, and a polished desktop interface.
+
+This must be a real, maintainable software application, not merely a UI prototype or a collection of mock screens.
+
+Build actual functionality incrementally. Compile the application, execute tests, investigate failures, and fix problems before declaring features complete.
+
+Do not fabricate functionality, test results, audio capabilities, benchmark numbers, or supported-platform claims.
+
+---
+
+# 1. PRODUCT VISION
+
+Create a music player that offers:
+
+* Extensive practical audio-format support.
+* High-quality audio decoding and playback.
+* Bit-perfect playback where the entire output path supports and verifies it.
+* Advanced audio configuration and DSP.
+* Efficient management of large local music libraries.
+* Playlists, search, filters, and listening history.
+* Optional lyrics, artwork, and metadata retrieval.
+* Intelligent local music collections and recommendations.
+* Smooth, modern, animated desktop UI.
+* Strong offline functionality.
+* Privacy-conscious local storage.
+* Reliable operation on Windows, Linux, and macOS.
+
+The application must remain useful without an internet connection.
+
+Do not require users to create accounts or upload their music to external servers.
+
+Prioritize audio correctness, stability, performance, usability, and maintainability over unnecessary features.
+
+---
+
+# 2. REQUIRED TECHNOLOGY STACK
+
+Use the following primary technologies unless a documented technical limitation requires a justified alternative.
+
+## Programming Language
+
+C++20.
+
+Requirements:
+
+* Modern C++.
+* RAII and appropriate smart-pointer usage.
+* Clear resource ownership.
+* Thread-safe interfaces.
+* Meaningful error handling.
+* Minimal unnecessary global state.
+* No avoidable undefined behavior.
+
+## Application Framework
+
+Qt 6 with Qt Quick and QML.
+
+Use:
+
+* QML for the presentation layer.
+* C++ for audio services, application logic, library operations, and DSP.
+* Qt integration for desktop windows, settings, input, and platform services.
+* Reusable QML components rather than one enormous interface file.
+
+Choose Qt modules based on actual requirements. Do not add modules that are unnecessary.
+
+## Audio Decoding
+
+FFmpeg as the primary decoding framework.
+
+Use the relevant FFmpeg libraries for supported demuxing, decoding, and audio-format conversion.
+
+Consider specialized decoders or libraries when required for formats or capabilities that the configured FFmpeg build does not provide.
+
+Respect codec licensing, dependency redistribution rules, and the licenses of all bundled libraries.
+
+## Metadata
+
+Use TagLib for supported metadata reading and writing.
+
+Implement format-aware behavior for embedded artwork, tags, and metadata fields.
+
+Do not assume every format supports the same metadata operations.
+
+## Database
+
+SQLite for:
+
+* Music library indexing.
+* Playlists.
+* Listening history.
+* Playback statistics.
+* Application preferences.
+* Cached metadata.
+* Smart collection rules.
+
+Use parameterized queries, transactions, appropriate indexes, and versioned schema migrations.
+
+## Build System
+
+CMake with Qt's recommended CMake integration.
+
+Use CTest to organize automated tests.
+
+## Testing
+
+Use:
+
+* GoogleTest for suitable C++ unit and integration tests.
+* Qt Test for Qt-specific behavior.
+* Automated build and smoke-test procedures.
+* Audio fixtures with known properties for decoder and DSP tests.
+
+## Audio Output
+
+Design an independent audio-output interface with platform-specific implementations.
+
+Windows:
+
+* WASAPI.
+* Exclusive output where supported.
+* Shared output as an appropriate fallback.
+
+Linux:
+
+* PipeWire and/or ALSA, based on the available environment and implementation requirements.
+* Handle device capabilities and audio-server availability.
+
+macOS:
+
+* Core Audio.
+* Device configuration and output-mode reporting where supported.
+
+Do not assume Qt Multimedia alone provides all the capabilities required for exclusive-mode or bit-perfect playback.
+
+## Other Technologies
+
+* FFT-based processing for audio visualization.
+* Asynchronous tasks for library scanning and metadata retrieval.
+* Git for version control.
+* Platform-appropriate packaging tools for releases.
+
+Avoid introducing additional dependencies without a clear technical reason.
+
+---
+
+# 3. ARCHITECTURE
+
+Build SONIQ using modular components.
+
+Separate the application into the following logical layers:
+
+1. Presentation and QML components.
+2. Application services.
+3. Playback controller.
+4. Audio decoder management.
+5. Audio buffer and format conversion.
+6. DSP processing pipeline.
+7. Platform-specific audio output.
+8. Music library and scanning.
+9. Metadata and artwork.
+10. SQLite persistence.
+11. Online providers.
+12. Recommendation services.
+13. Settings and configuration.
+14. Diagnostics and logging.
+15. Platform integration.
+
+Define clear interfaces between these modules.
+
+The audio engine must not depend on UI animation timing.
+
+The UI must not directly manipulate decoder internals.
+
+Network requests and expensive library operations must never block the audio-processing thread.
+
+Use asynchronous processing where appropriate, with explicit thread ownership and cancellation behavior.
+
+Document important architectural decisions.
+
+---
+
+# 4. AUDIO FORMAT SUPPORT
+
+Support the broadest practical collection of formats that can be reliably decoded using the chosen dependencies and build configuration.
+
+Include, where available:
+
+* MP3.
+* AAC.
+* M4A.
+* ALAC.
+* FLAC.
+* WAV.
+* AIFF.
+* PCM.
+* OGG Vorbis.
+* Opus.
+* Speex.
+* WMA.
+* Monkey's Audio (APE).
+* WavPack.
+* TTA.
+* TAK.
+* AU.
+* AMR.
+* AC-3.
+* DTS.
+* DSD through DSF and DFF, where suitable decoder support is available.
+
+Handle common audio metadata and embedded artwork where supported.
+
+Requirements:
+
+* Detect file types using appropriate format probing rather than relying only on extensions.
+* Handle unsupported and corrupted files safely.
+* Display useful error messages.
+* Handle long recordings and large files.
+* Avoid unnecessary transcoding.
+* Avoid loading entire large files into memory unnecessarily.
+* Report unavailable codecs accurately.
+* Maintain a documented supported-format matrix.
+
+Do not claim that every variant of every format is supported.
+
+Verify actual codec availability in the final build.
+
+Preserve original files during playback and scanning.
+
+---
+
+# 5. PLAYBACK FEATURES
+
+Implement:
+
+* Play.
+* Pause.
+* Stop.
+* Previous track.
+* Next track.
+* Seeking.
+* Volume.
+* Mute.
+* Shuffle.
+* Repeat track.
+* Repeat queue.
+* Playback queue.
+* Queue reordering.
+* Drag-and-drop queue management.
+* Gapless playback where achievable.
+* Configurable crossfade.
+* Playback-speed control where supported.
+* A-B repeat.
+* Sleep timer.
+* Resume playback.
+* Playback-state persistence.
+* Background playback.
+* OS media keys.
+* System media controls.
+* Media-session integration where supported.
+* Recovery from audio-device changes.
+
+Use a robust playback state machine.
+
+Prevent invalid state transitions and inconsistent queue behavior.
+
+Handle:
+
+* Decoder initialization failure.
+* Unsupported media.
+* Corrupted audio.
+* Output-device disconnection.
+* Output initialization failure.
+* Missing files.
+* Seek failures.
+* Application shutdown during playback.
+
+Keep playback smooth even when the library is being scanned or the UI is animating.
+
+Implement gapless playback only after testing transitions and buffering behavior.
+
+Do not advertise crossfade or speed control as supported by a particular codec or backend until the implementation has been verified.
+
+---
+
+# 6. AUDIOPHILE MODE
+
+Implement a dedicated audiophile configuration system.
+
+## Bit-Perfect Playback
+
+Provide bit-perfect output where supported and verifiable.
+
+Requirements:
+
+* Preserve the decoded sample values through the output pipeline when bit-perfect mode is active.
+* Avoid resampling when it would alter the intended signal.
+* Avoid DSP, software gain, normalization, or crossfade operations that modify the samples.
+* Use compatible device formats and output modes.
+* Implement exclusive output where supported.
+* Detect incompatible settings.
+* Explain why bit-perfect playback may be unavailable.
+* Distinguish verified, unavailable, and unknown output status.
+
+Never label playback bit-perfect simply because the source is FLAC or another lossless format.
+
+A lossless source can still be modified by the playback pipeline.
+
+The application must accurately report when the current configuration cannot guarantee bit-perfect output.
+
+## Output Configuration
+
+Where platform APIs expose the information, display:
+
+* Selected output device.
+* Active backend.
+* Source sample rate.
+* Source bit depth when known.
+* Source channel count.
+* Output sample rate.
+* Output sample representation or bit depth where known.
+* Output channel configuration.
+* Resampling status.
+* DSP status.
+* Exclusive/shared output status.
+* Current capability or verification limitations.
+
+Clearly distinguish source-file properties from the active output pipeline.
+
+Do not fabricate unavailable hardware information.
+
+## Resampling
+
+Provide configurable resampling where supported.
+
+Requirements:
+
+* Select appropriate output rates.
+* Avoid unnecessary conversion.
+* Handle unsupported device configurations.
+* Keep the output stable when switching rates.
+* Test conversion accuracy using known signals.
+
+## Equalizer and DSP
+
+Implement:
+
+* 10-band graphic EQ.
+* 31-band graphic EQ.
+* Parametric EQ.
+* Preamp.
+* User-defined presets.
+* ReplayGain.
+* Loudness normalization.
+* Clipping prevention.
+* Stereo balance.
+* Channel controls.
+* Optional crossfeed.
+* Optional stereo enhancement.
+
+Requirements:
+
+* Stable filter implementations.
+* Safe parameter ranges.
+* No unexpected clipping.
+* Correct handling of sample formats and channel layouts.
+* Unit tests for important DSP algorithms.
+* Clearly indicate when DSP disables bit-perfect output.
+
+Use a modular processing graph that can bypass processing when appropriate.
+
+---
+
+# 7. AUDIO FILE INSPECTOR
+
+Implement a detailed file-inspection interface.
+
+Display available information about:
+
+* Container format.
+* Codec.
+* Sample rate.
+* Bit depth where reliably known.
+* Channel count.
+* Channel layout.
+* Bitrate.
+* Duration.
+* File size.
+* Metadata.
+* Embedded artwork.
+* Decoder availability.
+
+Where practical, provide:
+
+* Loudness analysis.
+* Clipping analysis.
+* Silence detection.
+* Peak-level analysis.
+* Suspicious encoding characteristics.
+* Audio stream information.
+
+Do not confuse encoded bit depth, decoded sample representation, and output-device bit depth.
+
+Do not claim that a file is genuine high-resolution audio merely because its metadata reports a high sample rate or bit depth.
+
+Clearly label estimates and unverified properties.
+
+---
+
+# 8. MUSIC LIBRARY
+
+Implement a full local music library.
+
+Features:
+
+* Add folders.
+* Remove folders from the indexed library without deleting source files.
+* Rescan folders.
+* Detect new, moved, and missing files where practical.
+* Extract metadata.
+* Extract and cache artwork.
+* Browse songs.
+* Browse albums.
+* Browse artists.
+* Browse genres.
+* Browse by year.
+* Search by title, artist, album, and supported metadata fields.
+* Sort and filter results.
+* Multi-select tracks.
+* Bulk metadata editing.
+* Recently added.
+* Recently played.
+* Most played.
+* Favorites.
+* Listening statistics.
+* Duplicate-candidate detection.
+* Playlists.
+* Playlist import and export.
+* Smart collections.
+* Playback-queue persistence.
+
+Use asynchronous scanning and incremental database updates.
+
+Support large libraries without freezing the interface.
+
+Use appropriate database indexes and efficient query strategies.
+
+Protect user data and avoid destructive actions without explicit consent.
+
+Metadata editing must handle unsupported tags and write failures safely.
+
+---
+
+# 9. PLAYLISTS
+
+Support:
+
+* Creating playlists.
+* Renaming playlists.
+* Deleting playlist records without deleting music files.
+* Adding and removing tracks.
+* Reordering tracks.
+* Duplicate tracks in playlists where appropriate.
+* Saving playlist state.
+* Importing supported playlist formats.
+* Exporting supported playlist formats.
+* Smart playlists based on configurable rules.
+
+Handle missing tracks gracefully.
+
+Preserve playlist ordering and stable identifiers where possible.
+
+---
+
+# 10. ONLINE FEATURES
+
+All online features must be optional.
+
+Implement a provider architecture for:
+
+* Plain lyrics.
+* Synchronized lyrics.
+* Album artwork.
+* Artist metadata.
+* Album metadata.
+* Related-artist information where available.
+
+Requirements:
+
+* Use legitimate APIs and data sources.
+* Respect provider licensing and terms.
+* Respect rate limits.
+* Do not bypass access controls.
+* Cache retrieved content locally.
+* Handle unavailable providers.
+* Handle timeouts and network failures.
+* Do not upload music files.
+* Do not require an account for core playback.
+* Keep network work away from the audio thread.
+
+Provide offline fallbacks.
+
+Lyrics and metadata must not be represented as guaranteed to exist.
+
+Allow the online integration layer to be extended without changing the core playback engine.
+
+---
+
+# 11. SMART FEATURES
+
+Implement useful local intelligence.
+
+Features:
+
+* Similar-track suggestions.
+* Recently played collections.
+* Frequently played collections.
+* Mood-based playlists.
+* User-configurable smart collections.
+* Listening statistics.
+* Optional tempo analysis.
+* Optional musical-characteristic analysis.
+* Crossfade suggestions where feasible.
+
+Suggested moods:
+
+* Workout.
+* Night Drive.
+* Rainy Evening.
+* Focus.
+* Chill.
+* High Energy.
+
+Start with explainable, lightweight methods.
+
+Do not require cloud processing for basic recommendations.
+
+Do not claim perfect mood detection, beat matching, or musical analysis.
+
+Ensure recommendations remain optional and do not interfere with core playback.
+
+---
+
+# 12. UI AND USER EXPERIENCE
+
+Design a premium, distinctive desktop interface inspired by the clarity of Apple Music and the organization of iOS Settings.
+
+Do not copy proprietary assets or reproduce another application's interface exactly.
+
+The interface should include:
+
+* Home.
+* Library.
+* Songs.
+* Albums.
+* Artists.
+* Genres.
+* Playlists.
+* Favorites.
+* Recently Played.
+* Smart Collections.
+* Now Playing.
+* Queue.
+* Lyrics.
+* Audio Inspector.
+* Equalizer.
+* Audio Output settings.
+* General settings.
+* Appearance settings.
+* Privacy settings.
+* Diagnostics.
+* About SONIQ.
+
+Include:
+
+* Dark theme.
+* Light theme.
+* Custom accent colors.
+* Optional album-art-inspired accents.
+* Sidebar navigation.
+* Persistent mini-player.
+* Full-screen Now Playing.
+* Responsive layouts.
+* Rounded cards and panels.
+* Consistent typography.
+* Keyboard navigation.
+* Tooltips.
+* Accessible focus states.
+* Useful loading and error states.
+* Optional visualizers.
+
+Avoid excessive gradients, flashy RGB effects, unnecessary blur, and clutter.
+
+Use appropriately licensed fonts and icons.
+
+All important controls must connect to actual application logic.
+
+---
+
+# 13. ANIMATION AND PERFORMANCE
+
+Smooth animations are a core product requirement.
+
+Implement subtle transitions for:
+
+* Navigation.
+* Track selection.
+* Album artwork.
+* Page changes.
+* Queue updates.
+* Expanding panels.
+* Dialogs.
+* Mini-player transitions.
+* Now Playing.
+* Hover and focus states.
+
+Requirements:
+
+* Target 60 FPS or better where supported.
+* Use efficient Qt Quick animations.
+* Avoid expensive layout recalculations.
+* Avoid blocking the UI thread.
+* Keep audio processing independent of animation timing.
+* Avoid excessive object creation.
+* Respect reduced-motion preferences.
+* Test on ordinary desktop hardware.
+
+Do not add animations that delay user actions.
+
+Profile performance before introducing complex effects.
+
+---
+
+# 14. VISUALIZERS
+
+Provide optional visualizers:
+
+* Spectrum bars.
+* Waveform.
+* Circular spectrum.
+* Oscilloscope.
+
+Requirements:
+
+* Run visualization processing separately from critical playback work.
+* Use efficient FFT processing where appropriate.
+* Limit update rates when necessary.
+* Allow users to disable visualizers.
+* Avoid unnecessary memory allocation.
+* Ensure visualization failures never interrupt playback.
+
+Visualizer output must reflect actual audio data, not fabricated animation.
+
+---
+
+# 15. DESKTOP INTEGRATION
+
+Implement platform-appropriate support for:
+
+* OS media controls.
+* Global media keys.
+* System tray.
+* Background playback.
+* Notifications where appropriate.
+* Optional always-on-top mini-player.
+* File associations where feasible.
+* Drag-and-drop audio files and folders.
+
+Use native APIs or suitable Qt integrations.
+
+Document platform-specific limitations.
+
+Do not assume every integration behaves identically on all three operating systems.
+
+---
+
+# 16. PRIVACY AND DATA SAFETY
+
+SONIQ must be offline-first.
+
+Requirements:
+
+* Local music indexing.
+* Local listening history by default.
+* No mandatory account.
+* No uploading music files.
+* No unnecessary telemetry.
+* No hidden background network activity.
+* Privacy-conscious logs.
+* Configurable listening history.
+* Local settings and database.
+* Backup and restore for supported data.
+* Safe database migrations.
+* Safe handling of external metadata.
+* Explicit consent for destructive operations.
+
+Online requests must be used only for the requested online features.
+
+Do not store secrets in source code.
+
+Document data storage locations and online behavior.
+
+---
+
+# 17. ERROR HANDLING AND DIAGNOSTICS
+
+Implement meaningful diagnostics for:
+
+* Decoder failures.
+* Unsupported codecs.
+* Audio-output initialization.
+* Device disconnection.
+* Database failures.
+* Missing files.
+* Metadata write errors.
+* Online provider failures.
+* Configuration errors.
+* Build and runtime issues.
+
+Provide useful user-facing messages without exposing unnecessary internal details.
+
+Use structured logging where appropriate.
+
+Avoid excessive logging and sensitive data.
+
+Provide a diagnostics view that helps users understand the active output configuration and known limitations.
+
+---
+
+# 18. TESTING REQUIREMENTS
+
+Create automated tests for:
+
+* Decoder selection.
+* Supported format probing.
+* Playback-state transitions.
+* Queue operations.
+* Seeking behavior.
+* Database migrations.
+* Library scanning.
+* Metadata extraction.
+* Playlist operations.
+* DSP algorithms.
+* Clipping prevention.
+* Settings persistence.
+* Error handling.
+
+Add integration and smoke tests for critical workflows.
+
+Use known audio fixtures and deterministic DSP inputs.
+
+Test:
+
+* Long tracks.
+* Missing files.
+* Corrupted files.
+* Unsupported formats.
+* Large libraries.
+* Device removal.
+* Output initialization failures.
+* Network timeouts.
+* Application restart and recovery.
+
+Run available tests and report actual results.
+
+Do not invent passing test results.
+
+---
+
+# 19. PROJECT STRUCTURE
+
+Create a modular project structure appropriate for Qt, CMake, C++, and QML.
+
+Use logical directories for:
+
+* app.
+* src/core.
+* src/audio.
+* src/audio/output.
+* src/dsp.
+* src/library.
+* src/metadata.
+* src/database.
+* src/online.
+* src/services.
+* src/platform.
+* ui/components.
+* ui/screens.
+* ui/dialogs.
+* ui/panels.
+* ui/themes.
+* ui/animations.
+* resources.
+* tests/unit.
+* tests/integration.
+* tests/audio.
+* tests/ui.
+* docs.
+* scripts.
+
+Use actual project needs to determine exact filenames.
+
+Do not create every possible file as an empty placeholder.
+
+Avoid duplicate modules and unnecessary abstractions.
+
+---
+
+# 20. DOCUMENTATION
+
+Maintain:
+
+* README.md.
+* ARCHITECTURE.md.
+* AUDIO_ENGINE.md.
+* SUPPORTED_FORMATS.md.
+* BUILDING.md.
+* TROUBLESHOOTING.md.
+* Relevant dependency and licensing notes.
+
+Documentation must describe actual implementation and limitations.
+
+Do not claim features are completed when they remain planned.
+
+---
+
+# 21. CROSS-PLATFORM BUILDS
+
+Prepare reproducible build and packaging procedures for:
+
+* Windows.
+* Linux.
+* macOS.
+
+Document:
+
+* Compiler requirements.
+* Qt requirements.
+* Dependency setup.
+* CMake configuration.
+* Build commands.
+* Test commands.
+* Packaging.
+* Runtime dependencies.
+* Known platform limitations.
+
+Build and test on available platforms.
+
+If a platform is unavailable, document the limitation and provide instructions for validating it on that platform.
+
+Never claim successful testing on a platform that has not been tested.
+
+---
+
+# 22. DEVELOPMENT WORKFLOW
+
+Implement SONIQ incrementally.
+
+PHASE 1: Project foundation, build system, application shell, and design system.
+
+PHASE 2: Audio decoding, playback engine, queue, and initial output backend.
+
+PHASE 3: Music library, metadata, database, and playlists.
+
+PHASE 4: Audiophile output, DSP, equalizers, and audio diagnostics.
+
+PHASE 5: Full UI, animations, visualizers, and desktop integration.
+
+PHASE 6: Online lyrics, artwork, metadata, and smart collections.
+
+PHASE 7: Testing, performance optimization, documentation, and packaging.
+
+For every phase:
+
+1. Inspect the current repository.
+2. Identify completed work.
+3. Plan the smallest coherent implementation.
+4. Make the changes.
+5. Build the application.
+6. Run relevant tests.
+7. Fix discovered failures.
+8. Update documentation.
+9. Summarize completed and remaining work.
+
+Do not overwrite working functionality unnecessarily.
+
+Do not attempt to implement the entire application in one enormous source file.
+
+Do not move to the next major phase while critical build failures remain unresolved.
+
+---
+
+# 23. INITIAL ACTION
+
+Begin by inspecting the current workspace.
+
+If the repository is empty, initialize the SONIQ project.
+
+If code already exists, inspect and preserve useful work.
+
+Then:
+
+1. Establish the architecture.
+2. Configure Qt 6, C++20, and CMake.
+3. Create the initial project structure.
+4. Build the application shell.
+5. Establish reusable QML components and the design system.
+6. Add initial tests.
+7. Compile and run the available tests.
+8. Fix errors.
+9. Document the build process.
+
+Do not stop after producing a plan. Start implementing Phase 1 and verify the result.
+
+At the end, report:
+
+* What was implemented.
+* Which files changed.
+* Build status.
+* Tests executed and their results.
+* Known limitations.
+* Exact commands to build and run the project.
+* The next recommended development step.
+
+# FINAL PRODUCT STANDARD
+
+SONIQ must be reliable, visually polished, modular, responsive, privacy-conscious, and technically honest about its audio capabilities.
+
+Prioritize correct audio behavior, stable playback, responsive UI, and maintainable code.
+
+PROJECT NAME: SONIQ
+
+TAGLINE: Pure Sound. Infinite Possibilities.

@@ -1,0 +1,758 @@
+# SONIQ UI/UX ENHANCEMENT
+
+## Transform the Application into a Premium Desktop Music Experience
+
+### ROLE
+
+Act as a principal product designer, senior interaction designer, Qt Quick/QML engineer, desktop UX specialist, and frontend performance engineer.
+
+Your task is to inspect and enhance the existing SONIQ application into a polished, premium, production-quality desktop music player.
+
+SONIQ is a cross-platform application for Windows, Linux, and macOS, built primarily with C++20, Qt 6, and QML.
+
+The product identity is:
+
+SONIQ
+Pure Sound. Infinite Possibilities.
+
+Do not replace working application functionality with static mockups.
+
+Improve the existing implementation while preserving the audio engine, library, database, playback logic, and other working services.
+
+The goal is to create a coherent, beautiful, highly responsive listening experience—not a generic dashboard.
+
+---
+
+# 1. DESIGN VISION
+
+Create a unique design language that combines:
+
+* The music-first presentation of Apple Music.
+* The clean configuration patterns of iOS Settings.
+* The flexibility and usability of a professional desktop application.
+* SONIQ's own recognizable visual identity.
+
+Use these products as high-level design inspiration only. Do not copy their proprietary assets or reproduce their interfaces exactly.
+
+The application should feel:
+
+* Premium.
+* Minimal.
+* Modern.
+* Music-focused.
+* Calm.
+* Responsive.
+* Intuitive.
+* Technically sophisticated without feeling complicated.
+
+Every screen should feel like part of the same product.
+
+Avoid a generic administration-dashboard aesthetic.
+
+---
+
+# 2. DESIGN SYSTEM
+
+Before redesigning individual screens, establish a reusable design system.
+
+Create centralized design tokens for:
+
+* Background colors.
+* Surface colors.
+* Elevated surfaces.
+* Primary text.
+* Secondary text.
+* Muted text.
+* Borders and dividers.
+* Accent colors.
+* Success states.
+* Warning states.
+* Error states.
+* Focus indicators.
+* Typography.
+* Spacing.
+* Corner radii.
+* Shadows where appropriate.
+* Animation durations.
+* Motion curves.
+* Icon sizes.
+* Control heights.
+
+Keep the design tokens centralized so dark mode, light mode, and accent colors remain consistent.
+
+Do not scatter hard-coded colors and spacing values across every QML file.
+
+## Color Direction
+
+Create an elegant neutral foundation.
+
+Support:
+
+* Dark theme.
+* Light theme.
+* Custom accent colors.
+* Optional album-art-inspired accents.
+
+Album-art colors should be used selectively and must not damage readability or contrast.
+
+Avoid:
+
+* Excessive gradients.
+* Neon RGB styling.
+* Oversaturated backgrounds.
+* Heavy glassmorphism.
+* Excessive blur.
+* Unnecessary glow effects.
+* Low-contrast text.
+* Constantly changing colors.
+* Decorative elements that distract from the music.
+
+The result should look refined even when no album artwork is available.
+
+---
+
+# 3. TYPOGRAPHY AND ICONS
+
+Establish a consistent typographic hierarchy.
+
+Define styles for:
+
+* Main page headings.
+* Section headings.
+* Track titles.
+* Artist names.
+* Album titles.
+* Metadata.
+* Body text.
+* Captions.
+* Secondary labels.
+* Technical audio information.
+
+Use appropriate native system fonts or properly licensed alternatives.
+
+Choose a consistent icon system.
+
+Icons should:
+
+* Have consistent visual weight.
+* Align correctly.
+* Remain legible at different sizes.
+* Communicate familiar actions.
+* Provide tooltips when their meaning is not obvious.
+
+Avoid mixing unrelated icon styles.
+
+Use text labels when an icon alone could be ambiguous.
+
+---
+
+# 4. MAIN APPLICATION LAYOUT
+
+Design a desktop-native application layout with:
+
+1. Navigation sidebar.
+2. Main content area.
+3. Persistent mini-player.
+4. Optional queue panel.
+5. Search and filtering.
+6. Contextual actions.
+7. Keyboard-accessible navigation.
+
+The layout must adapt to window resizing.
+
+Avoid wasting screen space while retaining comfortable spacing.
+
+The sidebar should support clear navigation between:
+
+* Home.
+* Library.
+* Songs.
+* Albums.
+* Artists.
+* Genres.
+* Playlists.
+* Favorites.
+* Recently Played.
+* Smart Collections.
+* Audio Inspector.
+* Settings.
+
+Use clear active states and subtle transitions.
+
+The interface should remain useful on smaller windows and high-DPI displays.
+
+---
+
+# 5. HOME SCREEN
+
+Design a personalized music home screen using real library data.
+
+Possible sections:
+
+* Recently Played.
+* Recently Added.
+* Frequently Played.
+* Favorites.
+* Continue Listening.
+* Smart Collections.
+* Suggested Tracks.
+* Recently Imported Albums.
+
+Only show sections that contain meaningful content.
+
+Do not fill the interface with empty or fabricated cards.
+
+Provide polished empty states when the user has not imported music.
+
+The first-run experience should guide users to:
+
+* Add a music folder.
+* Import music.
+* Start playback.
+* Explore supported features.
+
+Make these actions easy to discover.
+
+---
+
+# 6. MUSIC LIBRARY
+
+Create a powerful but uncluttered library interface.
+
+Support:
+
+* Track list.
+* Album grid.
+* Artist view.
+* Genre view.
+* Search.
+* Filtering.
+* Sorting.
+* Multi-selection.
+* Context menus.
+* Drag-and-drop where appropriate.
+* Playlist actions.
+* Metadata inspection.
+
+For track lists:
+
+* Make titles easy to scan.
+* Display secondary information without excessive clutter.
+* Keep columns aligned.
+* Support sorting.
+* Provide useful keyboard interactions.
+* Highlight the currently playing track clearly.
+
+For album grids:
+
+* Use consistent artwork dimensions.
+* Maintain correct aspect ratios.
+* Avoid distorted thumbnails.
+* Use elegant fallback artwork.
+* Support different window sizes.
+
+For large libraries:
+
+* Avoid creating thousands of expensive visual objects unnecessarily.
+* Use efficient models and delegates.
+* Consider incremental loading or model virtualization where appropriate.
+* Keep search and filtering responsive.
+
+Do not freeze the UI during library scanning.
+
+---
+
+# 7. NOW PLAYING EXPERIENCE
+
+Make Now Playing the visual centerpiece of SONIQ.
+
+Create a dedicated screen or panel with:
+
+* Large album artwork.
+* Track title.
+* Artist.
+* Album.
+* Playback timeline.
+* Elapsed time.
+* Remaining or total duration.
+* Previous.
+* Play/pause.
+* Next.
+* Shuffle.
+* Repeat.
+* Volume.
+* Queue access.
+* Lyrics.
+* Audio information.
+* Optional visualizer.
+
+Use a balanced layout that works with both portrait-oriented and square artwork.
+
+Handle missing artwork elegantly.
+
+When the track changes:
+
+* Update the content cleanly.
+* Use a subtle artwork transition.
+* Avoid excessive motion.
+* Keep controls responsive.
+* Never interrupt playback because of an animation.
+
+Provide a compact Now Playing layout for smaller windows.
+
+---
+
+# 8. MINI-PLAYER
+
+Create a persistent, compact player.
+
+It should provide:
+
+* Artwork thumbnail.
+* Track title.
+* Artist.
+* Play/pause.
+* Previous/next where space allows.
+* Playback progress.
+* Queue access.
+* Expand-to-Now-Playing action.
+
+Use clear hit targets.
+
+Keep the mini-player visually integrated with the application.
+
+Support smooth expansion and collapse without delaying playback controls.
+
+Do not allow animations to block input.
+
+---
+
+# 9. QUEUE EXPERIENCE
+
+Design an intuitive playback queue.
+
+Features:
+
+* View upcoming tracks.
+* Reorder tracks.
+* Remove tracks from the queue.
+* Clear the queue with appropriate safeguards.
+* Identify the current track.
+* Display useful track information.
+* Provide context menus.
+* Drag tracks into a new position where supported.
+
+Queue changes must update the actual playback engine.
+
+The visual queue must never diverge from the real queue state.
+
+Use subtle animations for reorder operations without making the interface feel slow.
+
+---
+
+# 10. LYRICS EXPERIENCE
+
+Create a dedicated lyrics panel with:
+
+* Plain lyrics.
+* Synchronized lyrics where available.
+* Clear current-line highlighting.
+* Scrolling that follows playback.
+* Manual scrolling.
+* Loading and unavailable states.
+* Useful offline states.
+
+Do not fabricate lyrics when a provider has no result.
+
+Do not make network requests on the UI or audio-processing thread.
+
+Synchronized lyrics should follow actual playback position as accurately as the available data permits.
+
+Provide a graceful fallback when synchronized lyrics are unavailable.
+
+---
+
+# 11. AUDIO INSPECTOR
+
+Design an audio-inspection screen that presents technical information clearly.
+
+Display available information about:
+
+* File format.
+* Codec.
+* Sample rate.
+* Bit depth when known.
+* Channel count.
+* Bitrate.
+* Duration.
+* File size.
+* Metadata.
+* Decoder status.
+* Output configuration where relevant.
+
+Separate:
+
+* Source-file information.
+* Decoded audio information.
+* Output-device information.
+* DSP and resampling status.
+
+Make the interface accessible to beginners while retaining detailed information for advanced users.
+
+Use explanatory tooltips for technical terms.
+
+Never fabricate unavailable information.
+
+Do not display a verified bit-perfect status unless the audio pipeline can substantiate it.
+
+---
+
+# 12. EQUALIZER AND DSP INTERFACE
+
+Create a polished audio-processing interface.
+
+Include:
+
+* 10-band EQ.
+* 31-band EQ.
+* Parametric EQ.
+* Preamp.
+* Presets.
+* ReplayGain.
+* Loudness normalization.
+* Clipping prevention.
+* Stereo balance.
+* Supported channel controls.
+
+Use clear visual feedback for frequency bands and gain values.
+
+Requirements:
+
+* Sliders must respond smoothly.
+* Numeric values must remain readable.
+* Controls must be keyboard-accessible.
+* Presets must reflect actual DSP state.
+* Changes must update the real audio-processing pipeline.
+* Reset and preset operations must behave predictably.
+* Display warnings when DSP prevents bit-perfect output.
+
+Do not implement decorative EQ controls that are disconnected from the engine.
+
+Provide a clean layout without excessive technical clutter.
+
+---
+
+# 13. AUDIO OUTPUT SETTINGS
+
+Design an advanced audio-settings experience with clear categories.
+
+Include:
+
+* Output-device selection.
+* Output-backend status.
+* Available sample rates.
+* Output mode.
+* Exclusive-mode settings where supported.
+* Resampling configuration.
+* DSP status.
+* Bit-perfect eligibility and verification status.
+
+Explain unavailable options rather than silently disabling them.
+
+Use confirmation or safe fallback behavior where a configuration change may interrupt playback.
+
+Clearly distinguish source-file sample rate from active output sample rate.
+
+Do not claim that exclusive mode or bit-perfect playback is available on every device or operating system.
+
+Use concise explanatory labels and tooltips.
+
+---
+
+# 14. SETTINGS EXPERIENCE
+
+Create a consistent, organized settings interface inspired by the clarity of iOS Settings.
+
+Categories:
+
+* General.
+* Appearance.
+* Playback.
+* Audio Output.
+* Audiophile Mode.
+* Equalizer and DSP.
+* Music Library.
+* Metadata and Artwork.
+* Lyrics.
+* Smart Features.
+* Keyboard Shortcuts.
+* Privacy.
+* Diagnostics.
+* About SONIQ.
+
+Requirements:
+
+* Logical grouping.
+* Clear labels.
+* Short explanations.
+* Consistent controls.
+* Appropriate defaults.
+* Immediate feedback.
+* Explicit save behavior where needed.
+* Persistent preferences.
+* Useful reset options.
+* Platform-aware availability.
+
+Avoid overwhelming users with all advanced options at once.
+
+Use progressive disclosure for complex settings.
+
+Preserve advanced controls for users who want them.
+
+---
+
+# 15. ANIMATION SYSTEM
+
+Implement a consistent motion system.
+
+Define reusable animation tokens for:
+
+* Short feedback.
+* Standard transitions.
+* Panel expansion.
+* Artwork transitions.
+* Navigation.
+* Modal presentation.
+
+Use smooth easing curves and avoid unnecessary overshoot.
+
+Animate:
+
+* Sidebar selection.
+* Page transitions.
+* Hover and focus states.
+* Buttons and controls.
+* Artwork changes.
+* Mini-player expansion.
+* Queue updates.
+* Panel expansion.
+* Dialogs.
+* Track selection.
+
+Requirements:
+
+* Target 60 FPS or better where supported.
+* Keep animations subtle.
+* Avoid blocking the UI thread.
+* Avoid repeated expensive layout calculations.
+* Avoid excessive blur or shadow recalculation.
+* Use appropriate Qt Quick animation mechanisms.
+* Keep the audio engine independent of UI frame timing.
+* Respect reduced-motion settings.
+
+If animation performance degrades, profile the interface and simplify expensive effects rather than sacrificing playback stability.
+
+---
+
+# 16. VISUALIZERS
+
+Create optional visualizer interfaces for:
+
+* Spectrum bars.
+* Waveform.
+* Circular spectrum.
+* Oscilloscope.
+
+Use real audio-analysis data.
+
+Requirements:
+
+* Efficient updates.
+* Suitable FFT processing.
+* Minimal allocations during rendering.
+* Independent visualization processing.
+* Configurable refresh rate where appropriate.
+* A clear off switch.
+* No impact on audio playback stability.
+
+Avoid fake visualizer animations that do not reflect the actual audio signal.
+
+---
+
+# 17. MICRO-INTERACTIONS
+
+Polish common interactions:
+
+* Button presses.
+* Hover states.
+* Focus indicators.
+* Track selection.
+* Context menus.
+* Tooltips.
+* Loading indicators.
+* Empty states.
+* Error states.
+* Confirmation dialogs.
+* Toast notifications where appropriate.
+
+Feedback must be fast and consistent.
+
+Avoid unnecessary confirmation dialogs for routine, reversible actions.
+
+Use confirmation for genuinely destructive or potentially data-losing operations.
+
+Do not use color alone to communicate errors or selection.
+
+---
+
+# 18. ACCESSIBILITY
+
+Ensure:
+
+* Keyboard navigation.
+* Logical tab order.
+* Visible focus states.
+* Appropriate text contrast.
+* Accessible labels.
+* Tooltips for unfamiliar controls.
+* Readable typography.
+* Scalable layouts.
+* High-DPI support.
+* Reduced-motion behavior.
+
+Avoid controls that require precise mouse movements.
+
+Make advanced features understandable without removing their technical depth.
+
+---
+
+# 19. RESPONSIVENESS AND PERFORMANCE
+
+The application must remain responsive during:
+
+* Library scanning.
+* Metadata extraction.
+* Artwork loading.
+* Database updates.
+* Search.
+* Online metadata requests.
+* Audio analysis.
+
+Use asynchronous work and suitable threading.
+
+Avoid:
+
+* Blocking the UI thread.
+* Excessive QML object creation.
+* Repeated full-library reloads.
+* Unnecessary image decoding.
+* Unbounded artwork caching.
+* Excessive animation updates.
+* Redundant database queries.
+
+Test multiple window sizes and large libraries.
+
+Use profiling tools where available.
+
+Do not claim measured performance targets without actually measuring them.
+
+---
+
+# 20. IMPLEMENTATION RULES
+
+Before changing the UI:
+
+1. Inspect the existing project.
+2. Understand the current QML structure.
+3. Identify reusable components.
+4. Identify existing working functionality.
+5. Establish a coherent design system.
+6. Plan the smallest meaningful changes.
+
+During implementation:
+
+* Preserve working backend functionality.
+* Reuse components.
+* Avoid unnecessary rewrites.
+* Connect controls to real services.
+* Avoid mock data in production screens.
+* Keep design tokens centralized.
+* Maintain platform compatibility.
+* Test after meaningful changes.
+
+Do not replace the audio engine with a visual simulation.
+
+Do not remove features simply because they are difficult to style.
+
+Do not add large dependencies just for minor visual effects.
+
+---
+
+# 21. REQUIRED DELIVERABLES
+
+Complete the following deliverables:
+
+1. A coherent SONIQ design system.
+2. A polished application shell.
+3. Improved navigation.
+4. Premium Home screen.
+5. Refined Music Library.
+6. Immersive Now Playing screen.
+7. Persistent Mini-player.
+8. Functional Queue panel.
+9. Lyrics interface.
+10. Audio Inspector.
+11. Equalizer and DSP interface.
+12. Audio Output settings.
+13. Organized Settings screens.
+14. Dark and light themes.
+15. Smooth, performance-conscious animations.
+16. Accessible controls and keyboard navigation.
+17. Responsive layouts.
+18. Loading, empty, and error states.
+19. Reusable QML components.
+20. Updated UI documentation.
+
+Implement only the deliverables appropriate to the current development phase, preserving a clear roadmap for unfinished functionality.
+
+---
+
+# 22. VALIDATION
+
+After implementation:
+
+1. Build the application.
+2. Run available tests.
+3. Launch the application where possible.
+4. Test navigation.
+5. Test resizing.
+6. Test keyboard controls.
+7. Test theme switching.
+8. Test real playback controls.
+9. Test queue updates.
+10. Test library interaction.
+11. Test settings persistence.
+12. Verify that animations do not interrupt playback.
+13. Inspect UI-thread blocking risks.
+14. Document remaining issues.
+
+Do not declare success based only on source code generation.
+
+---
+
+# FINAL INSTRUCTION
+
+Enhance SONIQ into a distinctive, premium, professional desktop music player.
+
+Prioritize excellent visual hierarchy, intuitive interactions, smooth animations, audio-engine integrity, accessibility, and real functionality.
+
+Keep the interface clean and elegant. Avoid excessive gradients, clutter, and unnecessary visual effects.
+
+Preserve the existing working architecture and improve it incrementally.
+
+Begin by inspecting the repository and identifying the highest-value UI improvements.
+
+Implement the improvements, build the application, validate the results, and report what actually works.
+
+PROJECT: SONIQ
+TAGLINE: Pure Sound. Infinite Possibilities.
