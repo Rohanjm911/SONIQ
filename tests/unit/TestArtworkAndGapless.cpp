@@ -89,14 +89,15 @@ void testDatabaseArtworkPersistence() {
     std::cout << "Testing database artwork_path column persistence (Migration v2)..." << std::endl;
 
     namespace fs = std::filesystem;
-    std::string testDbPath = "test_artwork_migration.db";
-    if (fs::exists(testDbPath)) {
-        fs::remove(testDbPath);
+    fs::path testDbPath = fs::temp_directory_path() / "test_artwork_migration.db";
+    std::error_code ec;
+    if (fs::exists(testDbPath, ec)) {
+        fs::remove(testDbPath, ec);
     }
 
     auto& db = db::DatabaseManager::instance();
     db.close();
-    bool initOk = db.initialize(QString::fromStdString(testDbPath));
+    bool initOk = db.initialize(QString::fromStdWString(testDbPath.wstring()));
     assert(initOk && "Database initialization failed");
 
     db::TrackRecord track;
@@ -174,13 +175,14 @@ void testLibraryScannerAndWorkerThread() {
     std::cout << "Testing LibraryScanner folder scanning with spaces & worker thread SQLite..." << std::endl;
 
     namespace fs = std::filesystem;
-    std::string testDbPath = "test_scanner_db.db";
-    if (fs::exists(testDbPath)) {
-        fs::remove(testDbPath);
+    fs::path testDbPath = fs::temp_directory_path() / "test_scanner_db.db";
+    std::error_code ec;
+    if (fs::exists(testDbPath, ec)) {
+        fs::remove(testDbPath, ec);
     }
     auto& db = db::DatabaseManager::instance();
     db.close();
-    bool dbOk = db.initialize(QString::fromStdString(testDbPath));
+    bool dbOk = db.initialize(QString::fromStdWString(testDbPath.wstring()));
     assert(dbOk && "Database initialization failed for scanner test");
 
     fs::path tempDir = fs::temp_directory_path() / "soniq_scanner_test_dir with spaces";
@@ -214,7 +216,7 @@ void testLibraryScannerAndWorkerThread() {
     assert(model.rowCount() >= 2 && "LibraryModel should contain scanned tracks");
 
     // Clean up temporary test files & db
-    std::error_code ec;
+    ec.clear();
     fs::remove_all(tempDir, ec);
     db.close();
     fs::remove(testDbPath, ec);

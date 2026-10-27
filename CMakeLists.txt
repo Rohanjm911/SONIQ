@@ -62,6 +62,12 @@ target_include_directories(soniq_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+target_compile_options(soniq_core PRIVATE
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+)
+
 target_link_libraries(soniq_core PUBLIC
     Qt6::Core
     Qt6::Sql
