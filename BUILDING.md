@@ -43,6 +43,9 @@ ctest --test-dir build --output-on-failure
 ```
 
 ### 4. Run SONIQ Desktop Application
+- **Direct Root Execution**: Double-click `soniq_app.exe` directly in the project root directory. It runs seamlessly with zero external DLL requirements.
+- **Standalone Portable Folder**: Double-click `dist/soniq_app.exe`. The `dist/` folder contains all self-contained Qt 6.8.2 libraries, MinGW UCRT runtime, and platform plugins, making it completely portable to any Windows 10/11 x64 machine.
+- **Developer Execution from Build Folder**:
 ```powershell
 $llvmBin = "C:\Users\Rohan JM\AppData\Local\Microsoft\WinGet\Packages\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\llvm-mingw-20260616-ucrt-x86_64\bin"
 $qtBin = "D:\Qt\6.8.2\llvm-mingw_64\bin"
