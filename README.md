@@ -99,5 +99,9 @@ $env:PATH = "C:\Users\Rohan JM\AppData\Local\Microsoft\WinGet\Packages\MartinSto
 ctest --test-dir build --output-on-failure
 
 # 4. Launch the SONIQ Desktop Application
-& "build\soniq_app.exe"
+# Direct root execution (zero DLL dependencies):
+.\soniq_app.exe
+
+# Or run the portable standalone bundle:
+.\dist\soniq_app.exe
 ```
