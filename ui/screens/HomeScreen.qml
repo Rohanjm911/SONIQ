@@ -32,12 +32,14 @@ Item {
                 height: 140
                 radius: Theme.cornerRadiusLarge
 
-                Row {
+                Item {
                     anchors.fill: parent
                     anchors.margins: 24
-                    spacing: 24
 
                     Rectangle {
+                        id: heroIcon
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
                         width: 80
                         height: 80
                         radius: 20
@@ -53,9 +55,35 @@ Item {
                         }
                     }
 
-                    Column {
+                    Row {
+                        id: actionButtonsRow
+                        anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 80 - actionButtonsRow.width - 72
+                        spacing: 8
+
+                        SoniqButton {
+                            id: addFolderBtn
+                            text: "Add Music Folder"
+                            iconText: "＋"
+                            onClicked: folderDialog.open()
+                        }
+
+                        SoniqButton {
+                            id: clearLibraryBtn
+                            variant: "secondary"
+                            text: "Clear"
+                            iconText: "✕"
+                            visible: libraryModel.count > 0
+                            onClicked: libraryModel.clearLibrary()
+                        }
+                    }
+
+                    Column {
+                        anchors.left: heroIcon.right
+                        anchors.leftMargin: 20
+                        anchors.right: actionButtonsRow.left
+                        anchors.rightMargin: 20
+                        anchors.verticalCenter: parent.verticalCenter
                         spacing: 6
 
                         Text {
@@ -75,28 +103,6 @@ Item {
                             color: Colors.textSecondary
                             elide: Text.ElideRight
                             width: parent.width
-                        }
-                    }
-
-                    Row {
-                        id: actionButtonsRow
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 8
-
-                        SoniqButton {
-                            id: addFolderBtn
-                            text: "Add Music Folder"
-                            iconText: "＋"
-                            onClicked: folderDialog.open()
-                        }
-
-                        SoniqButton {
-                            id: clearLibraryBtn
-                            variant: "secondary"
-                            text: "Clear"
-                            iconText: "🗑"
-                            visible: libraryModel.count > 0
-                            onClicked: libraryModel.clearLibrary()
                         }
                     }
                 }

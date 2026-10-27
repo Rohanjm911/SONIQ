@@ -128,14 +128,14 @@ Item {
             spacing: 24
 
             SoniqIconButton {
-                iconSymbol: "\u21C4"
+                iconSymbol: "shuffle"
                 iconPixelSize: 18
                 isAccent: playbackController.isShuffle
                 onClicked: playbackController.toggleShuffle()
             }
 
             SoniqIconButton {
-                iconSymbol: "\u23EE"
+                iconSymbol: "prev"
                 iconPixelSize: 22
                 onClicked: playbackController.previous()
             }
@@ -162,13 +162,13 @@ Item {
             }
 
             SoniqIconButton {
-                iconSymbol: "\u23ED"
+                iconSymbol: "next"
                 iconPixelSize: 22
                 onClicked: playbackController.next()
             }
 
             SoniqIconButton {
-                iconSymbol: playbackController.repeatMode === 1 ? "\u21B9" : "\u27F3"
+                iconSymbol: "repeat"
                 iconPixelSize: 18
                 isAccent: playbackController.repeatMode > 0
                 onClicked: {

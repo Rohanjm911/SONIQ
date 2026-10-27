@@ -487,6 +487,7 @@ ScrollView {
                     }
 
                     SoniqSlider {
+                        id: preampSlider
                         width: parent.width
                         from: -12.0
                         to: 12.0
@@ -499,8 +500,8 @@ ScrollView {
                         Connections {
                             target: dspService
                             function onDspChanged() {
-                                if (!pressed) {
-                                    value = dspService.preampDb;
+                                if (!preampSlider.pressed) {
+                                    preampSlider.value = dspService.preampDb;
                                 }
                             }
                         }

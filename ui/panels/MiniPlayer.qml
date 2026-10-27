@@ -100,7 +100,7 @@ Rectangle {
                 spacing: 12
 
                 SoniqIconButton {
-                    iconSymbol: "\u21C4"
+                    iconSymbol: "shuffle"
                     iconPixelSize: 14
                     isAccent: playbackController.isShuffle
                     tooltipText: "Shuffle"
@@ -108,7 +108,7 @@ Rectangle {
                 }
 
                 SoniqIconButton {
-                    iconSymbol: "\u23EE"
+                    iconSymbol: "prev"
                     iconPixelSize: 16
                     tooltipText: "Previous"
                     onClicked: playbackController.previous()
@@ -136,17 +136,17 @@ Rectangle {
                 }
 
                 SoniqIconButton {
-                    iconSymbol: "\u23ED"
+                    iconSymbol: "next"
                     iconPixelSize: 16
                     tooltipText: "Next"
                     onClicked: playbackController.next()
                 }
 
                 SoniqIconButton {
-                    iconSymbol: playbackController.repeatMode === 1 ? "\u21B9" : "\u27F3"
+                    iconSymbol: "repeat"
                     iconPixelSize: 14
                     isAccent: playbackController.repeatMode > 0
-                    tooltipText: "Repeat"
+                    tooltipText: playbackController.repeatMode === 1 ? "Repeat Track (Mode 1)" : (playbackController.repeatMode === 2 ? "Repeat All (Mode 2)" : "Repeat Off")
                     onClicked: {
                         var nextMode = (playbackController.repeatMode + 1) % 3;
                         playbackController.setRepeatMode(nextMode);
@@ -161,6 +161,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Text {
+                    id: posText
                     text: playbackController.positionFormatted
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
@@ -169,7 +170,7 @@ Rectangle {
                 }
 
                 SoniqSlider {
-                    width: parent.width - 80
+                    width: Math.max(100, parent.width - posText.implicitWidth - durText.implicitWidth - 24)
                     anchors.verticalCenter: parent.verticalCenter
                     from: 0.0
                     to: Math.max(1.0, playbackController.duration)
@@ -178,6 +179,7 @@ Rectangle {
                 }
 
                 Text {
+                    id: durText
                     text: playbackController.durationFormatted
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
@@ -208,8 +210,8 @@ Rectangle {
             // Volume Mute Button
             SoniqIconButton {
                 anchors.verticalCenter: parent.verticalCenter
-                iconSymbol: playbackController.isMuted ? "🔇" : (playbackController.volume > 0.5 ? "🔊" : "🔉")
-                iconPixelSize: 14
+                iconSymbol: playbackController.isMuted ? "mute" : "volume"
+                iconPixelSize: 15
                 tooltipText: playbackController.isMuted ? "Unmute" : "Mute"
                 onClicked: playbackController.setMuted(!playbackController.isMuted)
             }
@@ -236,7 +238,7 @@ Rectangle {
             // Fullscreen Toggle Button
             SoniqIconButton {
                 anchors.verticalCenter: parent.verticalCenter
-                iconSymbol: (window && window.visibility === Window.FullScreen) ? "🗗" : "⛶"
+                iconSymbol: (window && window.visibility === Window.FullScreen) ? "exit_fullscreen" : "fullscreen"
                 iconPixelSize: 15
                 tooltipText: (window && window.visibility === Window.FullScreen) ? "Exit Fullscreen (F11/Esc)" : "Fullscreen (F11)"
                 onClicked: root.fullscreenToggleRequested()

@@ -121,8 +121,8 @@ Rectangle {
                 SoniqIconButton {
                     width: 28
                     height: 28
-                    iconSymbol: "🔀"
-                    iconPixelSize: 12
+                    iconSymbol: "shuffle"
+                    iconPixelSize: 13
                     tooltipText: "Shuffle Queue"
                     onClicked: libraryModel.shuffleList()
                 }

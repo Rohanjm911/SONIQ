@@ -27,59 +27,58 @@ Item {
             width: parent.width
             height: 38
 
-            Row {
+            Text {
+                id: songsTitle
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 16
+                text: "Songs"
+                font.family: Typography.fontFamily
+                font.pixelSize: Typography.sizeTitleLarge
+                font.weight: Typography.weightBold
+                color: Colors.textPrimary
+            }
 
-                Text {
-                    text: "Songs"
-                    font.family: Typography.fontFamily
-                    font.pixelSize: Typography.sizeTitleLarge
-                    font.weight: Typography.weightBold
-                    color: Colors.textPrimary
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+            Rectangle {
+                id: searchBar
+                anchors.left: songsTitle.right
+                anchors.leftMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(260, Math.max(140, topActionRow.x - songsTitle.x - songsTitle.width - 32))
+                height: 36
+                radius: Theme.cornerRadiusSmall
+                color: Colors.surfaceElevated
+                border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
 
-                Rectangle {
-                    width: 260
-                    height: 36
-                    radius: Theme.cornerRadiusSmall
-                    color: Colors.surfaceElevated
-                    border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
-                    anchors.verticalCenter: parent.verticalCenter
+                Row {
+                    anchors.fill: parent
+                    anchors.leftMargin: 10
+                    anchors.rightMargin: 10
+                    spacing: 8
 
-                    Row {
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        spacing: 8
+                    SoniqIcon {
+                        name: "search"
+                        size: 14
+                        color: Colors.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    TextInput {
+                        id: searchInput
+                        width: parent.width - 24
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.family: Typography.fontFamily
+                        font.pixelSize: Typography.sizeBody
+                        color: Colors.textPrimary
+                        selectByMouse: true
+                        onTextChanged: libraryModel.search(text)
 
                         Text {
-                            text: "🔍"
-                            font.pixelSize: 12
-                            color: Colors.textMuted
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        TextInput {
-                            id: searchInput
-                            width: parent.width - 30
-                            anchors.verticalCenter: parent.verticalCenter
+                            visible: parent.text.length === 0
+                            text: "Search songs, artists..."
                             font.family: Typography.fontFamily
                             font.pixelSize: Typography.sizeBody
-                            color: Colors.textPrimary
-                            selectByMouse: true
-                            onTextChanged: libraryModel.search(text)
-
-                            Text {
-                                visible: parent.text.length === 0
-                                text: "Search songs, artists, albums..."
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeBody
-                                color: Colors.textMuted
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                            color: Colors.textMuted
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }
@@ -104,7 +103,7 @@ Item {
                 SoniqButton {
                     id: shuffleBtn
                     variant: "secondary"
-                    iconText: "🔀"
+                    iconText: "shuffle"
                     text: "Shuffle"
                     onClicked: libraryModel.shuffleList()
                 }
@@ -122,7 +121,7 @@ Item {
                     id: clearLibraryBtn
                     variant: "secondary"
                     text: "Clear"
-                    iconText: "🗑"
+                    iconText: "✕"
                     visible: libraryModel.count > 0
                     onClicked: libraryModel.clearLibrary()
                 }

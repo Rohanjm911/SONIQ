@@ -20,6 +20,7 @@ QtObject {
     // Font Weights
     readonly property int weightLight: Font.Light
     readonly property int weightNormal: Font.Normal
+    readonly property int weightRegular: Font.Normal
     readonly property int weightMedium: Font.DemiBold
     readonly property int weightBold: Font.Bold
 }

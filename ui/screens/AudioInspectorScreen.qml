@@ -59,7 +59,7 @@ ScrollView {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Inspect File"
-                iconText: "🔍"
+                iconText: "search"
                 onClicked: fileDialog.open()
             }
         }

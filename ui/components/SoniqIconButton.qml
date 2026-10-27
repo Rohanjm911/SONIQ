@@ -30,14 +30,13 @@ Button {
         }
     }
 
-    contentItem: Text {
-        text: control.iconSymbol
-        font.family: Typography.fontFamily
-        font.pixelSize: control.iconPixelSize
+    contentItem: SoniqIcon {
+        anchors.centerIn: parent
+        name: control.iconSymbol
+        size: control.iconPixelSize
         color: control.enabled ? control.iconColor : Colors.textMuted
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
     }
+
 
     ToolTip.visible: control.hovered && control.tooltipText.length > 0
     ToolTip.text: control.tooltipText

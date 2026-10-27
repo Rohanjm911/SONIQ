@@ -55,11 +55,10 @@ Button {
         spacing: 8
         anchors.centerIn: parent
 
-        Text {
+        SoniqIcon {
             visible: control.iconText.length > 0
-            text: control.iconText
-            font.family: Typography.fontFamily
-            font.pixelSize: Typography.sizeTitleMedium
+            name: control.iconText
+            size: 14
             color: control.variant === "primary" ? Colors.textInverse : Colors.textPrimary
             anchors.verticalCenter: parent.verticalCenter
         }

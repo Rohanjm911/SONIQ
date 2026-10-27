@@ -8,6 +8,7 @@
         <file>ui/themes/qmldir</file>
         <file>ui/components/SoniqButton.qml</file>
         <file>ui/components/SoniqIconButton.qml</file>
+        <file>ui/components/SoniqIcon.qml</file>
         <file>ui/components/SoniqSlider.qml</file>
         <file>ui/components/SoniqCard.qml</file>
         <file>ui/components/SoniqBadge.qml</file>

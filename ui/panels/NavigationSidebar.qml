@@ -109,10 +109,10 @@ Rectangle {
                         anchors.leftMargin: 12
                         spacing: 12
 
-                        Text {
+                        SoniqIcon {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.icon
-                            font.pixelSize: 14
+                            name: modelData.icon
+                            size: 16
                             color: root.currentScreen === modelData.id ? Colors.accent : Colors.textSecondary
                         }
 
@@ -146,8 +146,8 @@ Rectangle {
 
             Repeater {
                 model: [
-                    { id: "equalizer", label: "Equalizer & DSP", icon: "🎚" },
-                    { id: "inspector", label: "Audio Inspector", icon: "🔍" },
+                    { id: "equalizer", label: "Equalizer & DSP", icon: "equalizer" },
+                    { id: "inspector", label: "Audio Inspector", icon: "inspector" },
                     { id: "settings", label: "Settings", icon: "⚙" }
                 ]
 
@@ -174,10 +174,10 @@ Rectangle {
                         anchors.leftMargin: 12
                         spacing: 12
 
-                        Text {
+                        SoniqIcon {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.icon
-                            font.pixelSize: 14
+                            name: modelData.icon
+                            size: 16
                             color: root.currentScreen === modelData.id ? Colors.accent : Colors.textSecondary
                         }
 
