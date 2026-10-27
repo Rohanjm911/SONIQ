@@ -23,20 +23,22 @@ Rectangle {
         Row {
             spacing: 12
             Rectangle {
-                width: 36
-                height: 36
+                width: 38
+                height: 38
                 radius: 10
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: Colors.accent }
-                    GradientStop { position: 1.0; color: Qt.darker(Colors.accent, 1.4) }
-                }
-                Text {
+                color: Colors.surfaceActive
+                border.color: Colors.borderSubtle
+                border.width: 1
+                clip: true
+
+                Image {
                     anchors.centerIn: parent
-                    text: "S"
-                    font.family: Typography.fontFamily
-                    font.pixelSize: 20
-                    font.weight: Typography.weightBold
-                    color: "#FFFFFF"
+                    width: 32
+                    height: 32
+                    source: "qrc:/ui/assets/logo_icon.png"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: false
+                    mipmap: true
                 }
             }
 

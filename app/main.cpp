@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
     app.setApplicationName("SONIQ");
     app.setOrganizationName("SONIQ");
     app.setApplicationVersion("1.0.0");
+    app.setWindowIcon(QIcon(":/ui/assets/logo_icon.png"));
 
     QQuickStyle::setStyle("Basic");
 

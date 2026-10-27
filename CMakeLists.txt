@@ -78,9 +78,17 @@ if(WIN32)
 endif()
 
 # Main Application Executable
-add_executable(soniq_app WIN32
+set(SONIQ_APP_SOURCES
     app/main.cpp
     resources.qrc
+)
+
+if(WIN32)
+    list(APPEND SONIQ_APP_SOURCES app/soniq.rc)
+endif()
+
+add_executable(soniq_app WIN32
+    ${SONIQ_APP_SOURCES}
 )
 
 target_link_libraries(soniq_app PRIVATE

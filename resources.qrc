@@ -25,5 +25,8 @@
         <file>ui/screens/AudioInspectorScreen.qml</file>
         <file>ui/screens/SettingsScreen.qml</file>
         <file>ui/screens/qmldir</file>
+        <file>ui/assets/logo_icon.png</file>
+        <file>ui/assets/logo_full.png</file>
+        <file>ui/assets/app.ico</file>
     </qresource>
 </RCC>
