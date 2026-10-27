@@ -52,15 +52,36 @@ SONIQ is a modern, offline-first, cross-platform audiophile desktop music player
 
 ## Technology Stack
 
-| Layer | Technologies |
-|---|---|
-| **Language** | C++20 (RAII, smart pointers, `std::span`, `std::format`, `std::atomic`) |
-| **UI Framework** | Qt 6.8+ (Qt Quick, QML, Qt Quick Controls Basic style) |
-| **Audio Engine** | Windows WASAPI (Exclusive & Shared Mode), in-memory verification sink |
-| **Audio Decoding** | FFmpeg streaming pipeline + direct uncompressed WAV/PCM parser |
-| **Database** | SQLite via Qt6Sql with atomic transactions, prepared statements, and migrations |
-| **Build System** | CMake 3.22+, Ninja, CTest |
-| **Testing** | Automated unit and integration test suite (`soniq_tests`) |
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B20-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white" alt="C++20" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Qt_6.8-41CD52?style=for-the-badge&logo=qt&logoColor=white" alt="Qt 6.8" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Windows_WASAPI-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows WASAPI" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white" alt="FFmpeg" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/SQLite_3-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/CMake-064F8C?style=for-the-badge&logo=cmake&logoColor=white" alt="CMake" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Ninja-000000?style=for-the-badge&logo=ninja&logoColor=white" alt="Ninja" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/LLVM_Clang-900000?style=for-the-badge&logo=llvm&logoColor=white" alt="LLVM/Clang" />
+</p>
+
+<br />
+
+| Layer | Technology | Details |
+| :--- | :--- | :--- |
+| **Language** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" width="20" height="20" align="absmiddle" alt="C++" /> **C++20** | Modern ISO C++20 standard (`std::span`, `std::format`, `std::atomic`, RAII, smart pointers) |
+| **UI Framework** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/qt/qt-original.svg" width="20" height="20" align="absmiddle" alt="Qt 6" /> **Qt 6.8+ Quick / QML** | Declarative QML UI, Hardware-Accelerated SceneGraph, reactive signal-slot bindings |
+| **Audio Engine** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="20" height="20" align="absmiddle" alt="WASAPI" /> **Windows Core Audio (WASAPI)** | Event-driven Exclusive Mode (bit-perfect direct hardware) & Shared Mode with autoconvert fallback |
+| **Audio Decoding** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ffmpeg/ffmpeg-original.svg" width="20" height="20" align="absmiddle" alt="FFmpeg" /> **FFmpeg & Direct WAV Parser** | Universal 32-bit float streaming pipeline (FLAC, ALAC, DSD/DoP, MP3, AAC, OGG) + direct RIFF header reader |
+| **Database** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sqlite/sqlite-original.svg" width="20" height="20" align="absmiddle" alt="SQLite" /> **SQLite 3 (Qt6Sql)** | High-concurrency WAL mode journal, prepared statements, automated schema migrations (v1/v2) |
+| **Build System** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cmake/cmake-original.svg" width="20" height="20" align="absmiddle" alt="CMake" /> **CMake & Ninja** | Fast parallel build generation, automated MOC/RCC compilation, modular architecture |
+| **Compiler Toolchain** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/llvm/llvm-original.svg" width="20" height="20" align="absmiddle" alt="LLVM" /> **LLVM / Clang (MinGW-w64)** | High-performance C++20 compiler with LLD linker and full UCRT runtime integration |
+| **Testing Suite** | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-plain.svg" width="20" height="20" align="absmiddle" alt="CTest" /> **CTest & Automated Suite** | Unit and integration test suite covering DSP filters, DSD DoP packing, database, and gapless audio |
 
 ---
 
