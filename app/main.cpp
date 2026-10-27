@@ -5,6 +5,8 @@
 #include <QQuickStyle>
 #include <QFile>
 #include <QDir>
+#include <QQuickWindow>
+#include <QScreen>
 
 #include "core/Logger.hpp"
 #include "database/DatabaseManager.hpp"
@@ -106,6 +108,22 @@ int main(int argc, char* argv[]) {
     if (qmlEngine.rootObjects().isEmpty()) {
         SONIQ_LOG_CRIT("Fatal: Could not load main.qml component.");
         return -1;
+    }
+
+    if (auto* rootObj = qmlEngine.rootObjects().value(0, nullptr)) {
+        if (auto* win = qobject_cast<QQuickWindow*>(rootObj)) {
+            QScreen* screen = win->screen() ? win->screen() : QGuiApplication::primaryScreen();
+            if (screen) {
+                const QRect avail = screen->availableGeometry();
+                int w = std::min(1200, std::max(840, static_cast<int>(avail.width() * 0.82)));
+                int h = std::min(720, std::max(520, static_cast<int>(avail.height() * 0.82)));
+                int x = avail.x() + (avail.width() - w) / 2;
+                int y = avail.y() + (avail.height() - h) / 2;
+                win->setGeometry(x, y, w, h);
+                SONIQ_LOG_INFO("Window positioned at ({}, {}) with dimensions {}x{} (Monitor Work Area: {}x{})",
+                               x, y, w, h, avail.width(), avail.height());
+            }
+        }
     }
 
     SONIQ_LOG_INFO("UI initialized successfully. Entering main event loop.");

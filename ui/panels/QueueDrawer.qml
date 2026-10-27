@@ -24,22 +24,24 @@ Rectangle {
         spacing: 16
 
         // Drawer Header
-        Row {
+        Item {
             width: parent.width
+            height: 32
+
             Text {
                 text: "PLAYING QUEUE"
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeTitleSmall
                 font.weight: Typography.weightBold
                 color: Colors.textPrimary
+                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
             }
-
-            Item { width: 1; height: 1; anchors.right: closeBtn.left }
 
             SoniqIconButton {
                 id: closeBtn
                 anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 iconSymbol: "✕"
                 iconPixelSize: 12
                 onClicked: root.closeRequested()

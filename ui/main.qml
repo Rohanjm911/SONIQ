@@ -10,18 +10,32 @@ ApplicationWindow {
     id: window
 
     title: "SONIQ — Pure Sound. Infinite Possibilities."
-    width: 1200
-    height: 800
-    minimumWidth: 900
-    minimumHeight: 600
+    width: Math.min(1200, Math.max(minimumWidth, Screen.desktopAvailableWidth ? Screen.desktopAvailableWidth * 0.82 : 1100))
+    height: Math.min(720, Math.max(minimumHeight, Screen.desktopAvailableHeight ? Screen.desktopAvailableHeight * 0.82 : 680))
+    minimumWidth: 840
+    minimumHeight: 520
     visible: true
     color: Colors.background
 
     property string activeScreen: "home"
     property bool queueOpen: false
 
+    Component.onCompleted: {
+        if (Screen.desktopAvailableWidth > 0 && Screen.desktopAvailableHeight > 0) {
+            if (window.width > Screen.desktopAvailableWidth) {
+                window.width = Screen.desktopAvailableWidth * 0.9;
+            }
+            if (window.height > Screen.desktopAvailableHeight) {
+                window.height = Screen.desktopAvailableHeight * 0.85;
+            }
+            window.x = Screen.virtualX + (Screen.desktopAvailableWidth - window.width) / 2;
+            window.y = Screen.virtualY + (Screen.desktopAvailableHeight - window.height) / 2;
+        }
+    }
+
     Item {
         anchors.fill: parent
+        clip: true
 
         // Main Horizontal Split: Sidebar + Content Area
         Row {
@@ -145,9 +159,10 @@ ApplicationWindow {
             id: queueDrawer
             anchors.top: parent.top
             anchors.bottom: miniPlayer.top
-            anchors.right: parent.right
             x: window.queueOpen ? parent.width - width : parent.width
+            visible: window.queueOpen || x < parent.width
             isOpen: window.queueOpen
+            z: 20
             onCloseRequested: {
                 window.queueOpen = false;
             }

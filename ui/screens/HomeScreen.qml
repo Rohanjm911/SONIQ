@@ -60,7 +60,7 @@ Item {
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 260
+                        width: parent.width - 80 - addFolderBtn.width - 72
                         spacing: 6
 
                         Text {
@@ -69,6 +69,8 @@ Item {
                             font.pixelSize: Typography.sizeTitleLarge
                             font.weight: Typography.weightBold
                             color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
 
                         Text {
@@ -76,10 +78,13 @@ Item {
                             font.family: Typography.fontFamily
                             font.pixelSize: Typography.sizeBody
                             color: Colors.textSecondary
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
                     }
 
                     SoniqButton {
+                        id: addFolderBtn
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Add Music Folder"
                         iconText: "＋"

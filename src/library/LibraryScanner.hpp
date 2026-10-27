@@ -12,6 +12,7 @@ namespace soniq::library {
 
 class LibraryScanner : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool isScanning READ isScanning NOTIFY scanningChanged)
 
 public:
     explicit LibraryScanner(QObject* parent = nullptr);
@@ -23,6 +24,7 @@ public:
     [[nodiscard]] bool isScanning() const noexcept { return m_scanning; }
 
 signals:
+    void scanningChanged();
     void scanStarted(const QString& path);
     void scanProgress(int current, int total, const QString& currentFile);
     void scanFinished(int addedCount, int totalFound);

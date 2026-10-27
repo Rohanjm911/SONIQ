@@ -19,7 +19,10 @@ void LibraryScanner::cancel() {
     if (m_workerThread && m_workerThread->joinable()) {
         m_workerThread->join();
     }
-    m_scanning = false;
+    if (m_scanning) {
+        m_scanning = false;
+        emit scanningChanged();
+    }
 }
 
 void LibraryScanner::scanDirectory(const QString& directoryPath) {
@@ -28,6 +31,7 @@ void LibraryScanner::scanDirectory(const QString& directoryPath) {
     cancel();
     m_scanning = true;
     m_cancelRequested = false;
+    emit scanningChanged();
 
     m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, directoryPath);
 }
@@ -89,6 +93,7 @@ void LibraryScanner::doScan(const QString& path) {
     }
 
     m_scanning = false;
+    emit scanningChanged();
     emit scanFinished(addedCount, total);
 }
 

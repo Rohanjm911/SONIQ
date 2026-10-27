@@ -8,6 +8,7 @@ namespace soniq::services {
 
 class LibraryModel : public QAbstractListModel {
     Q_OBJECT
+    Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
 
 public:
     enum TrackRoles {
