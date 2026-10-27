@@ -72,6 +72,29 @@ void testDatabase() {
     assert(allPl[0].name == "Audiophile Master Collection");
     assert(allPl[0].trackCount == 1);
 
+    // 7. Update Track Metadata (Tag Editor Test)
+    bool metaOk = db.updateTrackMetadata(id1, "Remastered Symphony", "Royal Philharmonic", "Lossless Master 2026", "Hi-Res Classical", 2026);
+    assert(metaOk);
+    auto updatedTracks = db.getAllTracks();
+    assert(updatedTracks[0].title == "Remastered Symphony");
+    assert(updatedTracks[0].artist == "Royal Philharmonic");
+    assert(updatedTracks[0].album == "Lossless Master 2026");
+    assert(updatedTracks[0].genre == "Hi-Res Classical");
+    assert(updatedTracks[0].year == 2026);
+
+    // 8. Playlist Removal & Management
+    bool remTrackOk = db.removeTrackFromPlaylist(plId, id1);
+    assert(remTrackOk);
+    assert(db.getPlaylistTracks(plId).empty());
+
+    bool renameOk = db.renamePlaylist(plId, "Renamed Collection");
+    assert(renameOk);
+    assert(db.getAllPlaylists()[0].name == "Renamed Collection");
+
+    bool delPlOk = db.deletePlaylist(plId);
+    assert(delPlOk);
+    assert(db.getAllPlaylists().empty());
+
     // 7. Preferences
     db.setPreference("theme_mode", "Dark");
     assert(db.getPreference("theme_mode") == "Dark");

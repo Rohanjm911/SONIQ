@@ -27,23 +27,56 @@ Item {
             width: parent.width
             height: 38
 
-            Text {
-                id: songsTitle
+            Row {
+                id: titleGroup
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Songs"
-                font.family: Typography.fontFamily
-                font.pixelSize: Typography.sizeTitleLarge
-                font.weight: Typography.weightBold
-                color: Colors.textPrimary
+                spacing: 10
+
+                Text {
+                    id: songsTitle
+                    text: libraryModel.activePlaylistId > 0 ? libraryModel.activePlaylistName : "Songs"
+                    font.family: Typography.fontFamily
+                    font.pixelSize: Typography.sizeTitleLarge
+                    font.weight: Typography.weightBold
+                    color: Colors.textPrimary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Rectangle {
+                    visible: libraryModel.activePlaylistId > 0
+                    height: 24
+                    width: clearPlText.width + 16
+                    radius: 12
+                    color: Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.15)
+                    border.color: Colors.accent
+                    border.width: 1
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        id: clearPlText
+                        anchors.centerIn: parent
+                        text: "✕ Clear Filter"
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: Colors.accent
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.clearPlaylistFilter()
+                    }
+                }
             }
 
             Rectangle {
                 id: searchBar
-                anchors.left: songsTitle.right
+                anchors.left: titleGroup.right
                 anchors.leftMargin: 16
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.min(260, Math.max(140, topActionRow.x - songsTitle.x - songsTitle.width - 32))
+                width: Math.min(260, Math.max(140, topActionRow.x - titleGroup.x - titleGroup.width - 32))
                 height: 36
                 radius: Theme.cornerRadiusSmall
                 color: Colors.surfaceElevated
@@ -90,6 +123,16 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
 
+                // Delete Playlist Button (if currently viewing a playlist)
+                SoniqButton {
+                    id: deletePlBtn
+                    variant: "secondary"
+                    iconText: "✕"
+                    text: "Delete Playlist"
+                    visible: libraryModel.activePlaylistId > 0
+                    onClicked: libraryModel.deletePlaylist(libraryModel.activePlaylistId)
+                }
+
                 // Sort Dropdown Button
                 SoniqButton {
                     id: sortBtn
@@ -122,7 +165,7 @@ Item {
                     variant: "secondary"
                     text: "Clear"
                     iconText: "✕"
-                    visible: libraryModel.count > 0
+                    visible: libraryModel.count > 0 && libraryModel.activePlaylistId <= 0
                     onClicked: libraryModel.clearLibrary()
                 }
             }
@@ -389,18 +432,34 @@ Item {
             delegate: SoniqTrackRow {
                 required property int index
                 required property var model
+                trackId: model.id !== undefined ? model.id : 0
                 trackNumber: index + 1
                 title: model.title
                 artist: model.artist
                 album: model.album
+                genre: model.genre !== undefined ? model.genre : ""
+                year: model.year !== undefined ? model.year : 0
+                filePath: model.filePath !== undefined ? model.filePath : ""
                 duration: model.durationFormatted
                 format: model.format
                 artworkPath: model.artworkPath ? model.artworkPath : ""
                 isFavorite: model.isFavorite
+                inPlaylist: libraryModel.activePlaylistId > 0
                 isPlaying: playbackController.trackFilePath === model.filePath && playbackController.isPlaying
 
                 onPlayClicked: playbackController.playFile(model.filePath)
                 onFavoriteClicked: libraryModel.toggleFavorite(index)
+                onEditTagsClicked: tagEditorDialog.openWith({
+                    id: model.id,
+                    title: model.title,
+                    artist: model.artist,
+                    album: model.album,
+                    genre: model.genre,
+                    year: model.year,
+                    filePath: model.filePath
+                })
+                onAddToPlaylistClicked: addToPlaylistDialog.openWith(model.id, model.title, model.artist)
+                onRemoveFromPlaylistClicked: libraryModel.removeTrackFromPlaylist(libraryModel.activePlaylistId, model.id)
             }
 
             // Empty State

@@ -14,6 +14,9 @@
         <file>ui/components/SoniqBadge.qml</file>
         <file>ui/components/SoniqTrackRow.qml</file>
         <file>ui/components/SoniqSpectrum.qml</file>
+        <file>ui/components/TagEditorDialog.qml</file>
+        <file>ui/components/CreatePlaylistDialog.qml</file>
+        <file>ui/components/AddToPlaylistDialog.qml</file>
         <file>ui/components/qmldir</file>
         <file>ui/panels/NavigationSidebar.qml</file>
         <file>ui/panels/MiniPlayer.qml</file>

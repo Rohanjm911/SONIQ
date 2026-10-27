@@ -6,4 +6,6 @@ SoniqCard 1.0 SoniqCard.qml
 SoniqBadge 1.0 SoniqBadge.qml
 SoniqTrackRow 1.0 SoniqTrackRow.qml
 SoniqSpectrum 1.0 SoniqSpectrum.qml
-
+TagEditorDialog 1.0 TagEditorDialog.qml
+CreatePlaylistDialog 1.0 CreatePlaylistDialog.qml
+AddToPlaylistDialog 1.0 AddToPlaylistDialog.qml

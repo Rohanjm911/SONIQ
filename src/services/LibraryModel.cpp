@@ -208,10 +208,15 @@ void LibraryModel::applyCurrentSort() {
 
 void LibraryModel::refresh() {
     beginResetModel();
-    m_tracks = db::DatabaseManager::instance().getAllTracks("title ASC");
+    if (m_activePlaylistId > 0) {
+        m_tracks = db::DatabaseManager::instance().getPlaylistTracks(m_activePlaylistId);
+    } else {
+        m_tracks = db::DatabaseManager::instance().getAllTracks("title ASC");
+    }
     applyCurrentSort();
     endResetModel();
     emit countChanged();
+    emit playlistsChanged();
 }
 
 void LibraryModel::search(const QString& query) {
@@ -336,6 +341,118 @@ std::vector<audio::QueueItem> LibraryModel::toQueueItems() const {
 void LibraryModel::clearLibrary() {
     db::DatabaseManager::instance().clearAllTracks();
     refresh();
+}
+
+QVariantList LibraryModel::getPlaylists() const {
+    auto pls = db::DatabaseManager::instance().getAllPlaylists();
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(pls.size()));
+    for (const auto& pl : pls) {
+        QVariantMap m;
+        m["id"] = static_cast<qint64>(pl.id);
+        m["name"] = QString::fromStdString(pl.name);
+        m["trackCount"] = static_cast<qulonglong>(pl.trackCount);
+        m["isSmart"] = pl.isSmart;
+        list.push_back(m);
+    }
+    return list;
+}
+
+qint64 LibraryModel::createPlaylist(const QString& name) {
+    if (name.trimmed().isEmpty()) return -1;
+    qint64 id = db::DatabaseManager::instance().createPlaylist(name.trimmed().toStdString());
+    if (id > 0) {
+        emit playlistsChanged();
+    }
+    return id;
+}
+
+bool LibraryModel::deletePlaylist(qint64 playlistId) {
+    bool ok = db::DatabaseManager::instance().deletePlaylist(playlistId);
+    if (ok) {
+        if (m_activePlaylistId == playlistId) {
+            clearPlaylistFilter();
+        }
+        emit playlistsChanged();
+    }
+    return ok;
+}
+
+bool LibraryModel::renamePlaylist(qint64 playlistId, const QString& newName) {
+    if (newName.trimmed().isEmpty()) return false;
+    bool ok = db::DatabaseManager::instance().renamePlaylist(playlistId, newName.trimmed().toStdString());
+    if (ok) {
+        if (m_activePlaylistId == playlistId) {
+            m_activePlaylistName = newName.trimmed();
+            emit activePlaylistChanged();
+        }
+        emit playlistsChanged();
+    }
+    return ok;
+}
+
+bool LibraryModel::addTrackToPlaylist(qint64 playlistId, qint64 trackId) {
+    bool ok = db::DatabaseManager::instance().addTrackToPlaylist(playlistId, trackId);
+    if (ok) {
+        if (m_activePlaylistId == playlistId) {
+            filterByPlaylist(playlistId, m_activePlaylistName);
+        }
+        emit playlistsChanged();
+    }
+    return ok;
+}
+
+bool LibraryModel::removeTrackFromPlaylist(qint64 playlistId, qint64 trackId) {
+    bool ok = db::DatabaseManager::instance().removeTrackFromPlaylist(playlistId, trackId);
+    if (ok) {
+        if (m_activePlaylistId == playlistId) {
+            filterByPlaylist(playlistId, m_activePlaylistName);
+        }
+        emit playlistsChanged();
+    }
+    return ok;
+}
+
+void LibraryModel::filterByPlaylist(qint64 playlistId, const QString& playlistName) {
+    beginResetModel();
+    m_activePlaylistId = playlistId;
+    m_activePlaylistName = playlistName;
+    m_tracks = db::DatabaseManager::instance().getPlaylistTracks(playlistId);
+    applyCurrentSort();
+    endResetModel();
+    emit countChanged();
+    emit activePlaylistChanged();
+}
+
+void LibraryModel::clearPlaylistFilter() {
+    if (m_activePlaylistId != -1) {
+        m_activePlaylistId = -1;
+        m_activePlaylistName.clear();
+        emit activePlaylistChanged();
+        refresh();
+    }
+}
+
+bool LibraryModel::updateTrackMetadata(qint64 trackId, const QString& title, const QString& artist,
+                                       const QString& album, const QString& genre, int year) {
+    bool ok = db::DatabaseManager::instance().updateTrackMetadata(
+        trackId, title.toStdString(), artist.toStdString(), album.toStdString(), genre.toStdString(), static_cast<uint32_t>(year)
+    );
+    if (ok) {
+        for (size_t i = 0; i < m_tracks.size(); ++i) {
+            if (m_tracks[i].id == trackId) {
+                m_tracks[i].title = title.toStdString();
+                m_tracks[i].artist = artist.toStdString();
+                m_tracks[i].album = album.toStdString();
+                m_tracks[i].genre = genre.toStdString();
+                m_tracks[i].year = static_cast<uint32_t>(year);
+                QModelIndex idx = index(static_cast<int>(i));
+                emit dataChanged(idx, idx, {TitleRole, ArtistRole, AlbumRole, GenreRole, YearRole});
+                break;
+            }
+        }
+    }
+    return ok;
 }
 
 } // namespace soniq::services

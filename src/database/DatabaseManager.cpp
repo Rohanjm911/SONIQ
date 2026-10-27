@@ -441,6 +441,23 @@ bool DatabaseManager::incrementPlayCount(int64_t trackId) {
     return query.exec();
 }
 
+bool DatabaseManager::updateTrackMetadata(int64_t trackId, const std::string& title, const std::string& artist,
+                                         const std::string& album, const std::string& genre, uint32_t year) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    QSqlQuery query(getDatabase());
+    query.prepare(
+        "UPDATE tracks SET title = :title, artist = :artist, album = :album, genre = :genre, year = :year "
+        "WHERE id = :id;"
+    );
+    query.bindValue(":title", QString::fromStdString(title));
+    query.bindValue(":artist", QString::fromStdString(artist));
+    query.bindValue(":album", QString::fromStdString(album));
+    query.bindValue(":genre", QString::fromStdString(genre));
+    query.bindValue(":year", year);
+    query.bindValue(":id", static_cast<qint64>(trackId));
+    return query.exec();
+}
+
 int64_t DatabaseManager::createPlaylist(const std::string& name, bool isSmart, const std::string& rules) {
     std::lock_guard<std::mutex> lock(m_mutex);
     QSqlQuery query(getDatabase());

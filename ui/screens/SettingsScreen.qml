@@ -49,7 +49,7 @@ ScrollView {
 
             SoniqCard {
                 width: parent.width
-                height: 140
+                height: 200
 
                 Column {
                     anchors.fill: parent
@@ -109,36 +109,46 @@ ScrollView {
                         }
                     }
 
-                    // Accent Colors
+                    // Accent Colors Presets
                     Item {
                         width: parent.width
                         height: 36
 
-                        Text {
+                        Column {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Accent Color"
-                            font.family: Typography.fontFamily
-                            font.pixelSize: Typography.sizeBody
-                            font.weight: Typography.weightMedium
-                            color: Colors.textPrimary
+                            spacing: 2
+
+                            Text {
+                                text: "Accent Color"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                            }
+                            Text {
+                                text: "Select from curated presets"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                            }
                         }
 
                         Row {
                             id: accentRow
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 10
+                            spacing: 8
 
                             Repeater {
-                                model: ["#FA2D48", "#3B82F6", "#10B981", "#8B5CF6", "#F59E0B"]
+                                model: ["#FA2D48", "#00F0FF", "#3B82F6", "#10B981", "#A855F7", "#F59E0B", "#EC4899", "#E2E8F0"]
 
                                 Rectangle {
-                                    width: 26
-                                    height: 26
-                                    radius: 13
+                                    width: 24
+                                    height: 24
+                                    radius: 12
                                     color: modelData
-                                    border.color: Colors.accent === modelData ? "#FFFFFF" : "transparent"
+                                    border.color: Colors.accent.toString().toUpperCase() === modelData.toUpperCase() ? "#FFFFFF" : "transparent"
                                     border.width: 2
 
                                     MouseArea {
@@ -147,7 +157,75 @@ ScrollView {
                                         onClicked: {
                                             Colors.accent = modelData;
                                             settingsService.accentColor = modelData;
+                                            customHexInput.text = modelData;
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Custom Accent Hex Input Row
+                    Item {
+                        width: parent.width
+                        height: 32
+
+                        Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Custom Hex Accent"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textSecondary
+                        }
+
+                        Row {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
+
+                            Rectangle {
+                                width: 22
+                                height: 22
+                                radius: 11
+                                color: Colors.accent
+                                border.color: Colors.borderSubtle
+                                border.width: 1
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Rectangle {
+                                width: 90
+                                height: 28
+                                radius: Theme.cornerRadiusSmall
+                                color: Colors.surfaceElevated
+                                border.color: customHexInput.activeFocus ? Colors.accent : Colors.borderSubtle
+                                border.width: 1
+
+                                TextInput {
+                                    id: customHexInput
+                                    anchors.fill: parent
+                                    anchors.margins: 5
+                                    font.family: Typography.monospaceFamily
+                                    font.pixelSize: Typography.sizeCaption
+                                    color: Colors.textPrimary
+                                    text: settingsService.accentColor || "#FA2D48"
+                                    selectByMouse: true
+                                    maximumLength: 7
+                                    onAccepted: applyHexBtn.clicked()
+                                }
+                            }
+
+                            SoniqButton {
+                                id: applyHexBtn
+                                variant: "secondary"
+                                text: "Apply"
+                                onClicked: {
+                                    var hex = customHexInput.text.trim();
+                                    if (hex.charAt(0) !== "#") hex = "#" + hex;
+                                    if (hex.length === 7) {
+                                        Colors.accent = hex;
+                                        settingsService.accentColor = hex;
                                     }
                                 }
                             }

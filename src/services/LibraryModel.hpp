@@ -13,6 +13,9 @@ class LibraryModel : public QAbstractListModel {
     Q_PROPERTY(QString sortField READ sortField NOTIFY sortChanged)
     Q_PROPERTY(bool sortAscending READ sortAscending NOTIFY sortChanged)
     Q_PROPERTY(QString sortLabel READ sortLabel NOTIFY sortChanged)
+    Q_PROPERTY(QVariantList playlists READ getPlaylists NOTIFY playlistsChanged)
+    Q_PROPERTY(qint64 activePlaylistId READ activePlaylistId NOTIFY activePlaylistChanged)
+    Q_PROPERTY(QString activePlaylistName READ activePlaylistName NOTIFY activePlaylistChanged)
 
 public:
     enum TrackRoles {
@@ -42,6 +45,10 @@ public:
     [[nodiscard]] QString sortLabel() const;
     [[nodiscard]] std::vector<audio::QueueItem> toQueueItems() const;
 
+    [[nodiscard]] QVariantList getPlaylists() const;
+    [[nodiscard]] qint64 activePlaylistId() const { return m_activePlaylistId; }
+    [[nodiscard]] QString activePlaylistName() const { return m_activePlaylistName; }
+
 public slots:
     void refresh();
     void search(const QString& query);
@@ -56,9 +63,24 @@ public slots:
     void shuffleList();
     void clearLibrary();
 
+    // Playlist Management (Feature 2)
+    qint64 createPlaylist(const QString& name);
+    bool deletePlaylist(qint64 playlistId);
+    bool renamePlaylist(qint64 playlistId, const QString& newName);
+    bool addTrackToPlaylist(qint64 playlistId, qint64 trackId);
+    bool removeTrackFromPlaylist(qint64 playlistId, qint64 trackId);
+    void filterByPlaylist(qint64 playlistId, const QString& playlistName);
+    void clearPlaylistFilter();
+
+    // Built-in Audio Tag & Metadata Editor (Feature 6)
+    bool updateTrackMetadata(qint64 trackId, const QString& title, const QString& artist,
+                             const QString& album, const QString& genre, int year);
+
 signals:
     void countChanged();
     void sortChanged();
+    void playlistsChanged();
+    void activePlaylistChanged();
 
 private:
     void applyCurrentSort();
@@ -67,6 +89,9 @@ private:
     QString m_sortField{"title"};
     bool m_sortAscending{true};
     QString m_lastSearchQuery;
+    qint64 m_activePlaylistId{-1};
+    QString m_activePlaylistName;
 };
 
 } // namespace soniq::services
+

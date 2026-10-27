@@ -5,17 +5,25 @@ Rectangle {
     id: root
 
     property int trackNumber: 1
+    property int trackId: 0
     property string title: "Track Title"
     property string artist: "Artist Name"
     property string album: "Album Name"
+    property string genre: ""
+    property int year: 0
+    property string filePath: ""
     property string duration: "3:45"
     property string format: "FLAC"
     property string artworkPath: ""
     property bool isPlaying: false
     property bool isFavorite: false
+    property bool inPlaylist: false
 
     signal playClicked()
     signal favoriteClicked()
+    signal editTagsClicked()
+    signal addToPlaylistClicked()
+    signal removeFromPlaylistClicked()
 
     implicitHeight: 48
     width: parent ? parent.width : 600
@@ -188,6 +196,119 @@ Rectangle {
             font.family: Typography.monospaceFamily
             font.pixelSize: Typography.sizeBody
             color: Colors.textMuted
+        }
+
+        // More Options Button (...)
+        Item {
+            width: 28
+            height: 28
+            anchors.verticalCenter: parent.verticalCenter
+
+            SoniqIconButton {
+                id: moreOptionsBtn
+                anchors.centerIn: parent
+                iconSymbol: "•••"
+                iconPixelSize: 11
+                iconColor: optionsPopup.visible ? Colors.accent : Colors.textMuted
+                onClicked: optionsPopup.open()
+            }
+
+            Popup {
+                id: optionsPopup
+                y: 30
+                x: -140
+                width: 176
+                padding: 4
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                background: Rectangle {
+                    radius: Theme.cornerRadiusSmall
+                    color: Colors.surfaceElevated
+                    border.color: Colors.borderSubtle
+                    border.width: 1
+                }
+                contentItem: Column {
+                    spacing: 2
+
+                    // Option: Add to Playlist
+                    Rectangle {
+                        width: parent.width
+                        height: 30
+                        radius: 4
+                        color: addPlMouse.containsMouse ? Colors.surfaceHover : "transparent"
+                        MouseArea {
+                            id: addPlMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                root.addToPlaylistClicked();
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 8
+                            Text { text: "＋"; font.pixelSize: 12; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Add to Playlist..."; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+
+                    // Option: Edit Tags
+                    Rectangle {
+                        width: parent.width
+                        height: 30
+                        radius: 4
+                        color: editMouse.containsMouse ? Colors.surfaceHover : "transparent"
+                        MouseArea {
+                            id: editMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                root.editTagsClicked();
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 8
+                            Text { text: "✎"; font.pixelSize: 12; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Edit Metadata Tags..."; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+
+                    // Option: Remove from Playlist (if currently in a playlist view)
+                    Rectangle {
+                        visible: root.inPlaylist
+                        width: parent.width
+                        height: 30
+                        radius: 4
+                        color: remMouse.containsMouse ? Qt.rgba(1, 0, 0, 0.15) : "transparent"
+                        MouseArea {
+                            id: remMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                root.removeFromPlaylistClicked();
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 8
+                            Text { text: "✕"; font.pixelSize: 11; color: "#EF4444"; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Remove from Playlist"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: "#EF4444"; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+                }
+            }
         }
     }
 }

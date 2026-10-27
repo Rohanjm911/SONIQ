@@ -71,6 +71,9 @@ public:
 
     bool setTrackFavorite(int64_t trackId, bool favorite);
     bool incrementPlayCount(int64_t trackId);
+    bool updateTrackMetadata(int64_t trackId, const std::string& title, const std::string& artist,
+                             const std::string& album, const std::string& genre, uint32_t year);
+
 
     // Playlist operations
     int64_t createPlaylist(const std::string& name, bool isSmart = false, const std::string& rules = "");

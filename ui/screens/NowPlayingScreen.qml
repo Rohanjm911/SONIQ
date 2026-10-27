@@ -11,33 +11,71 @@ Item {
         width: Math.min(780, parent.width - 48)
         spacing: root.height > 700 ? 28 : 18
 
-        // Large Album Artwork Panel
-        Rectangle {
+        // Artwork & Dynamic Ambilight Aura Container
+        Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(420, Math.min(parent.width - 64, Math.max(240, root.height * 0.44)))
             height: width
-            radius: Theme.cornerRadiusLarge
-            color: Colors.surfaceElevated
-            border.color: Colors.borderSubtle
-            border.width: 1
-            clip: true
 
-            Image {
-                anchors.fill: parent
-                source: (playbackController.trackArtworkPath && playbackController.trackArtworkPath.length > 0)
-                        ? ("file:///" + playbackController.trackArtworkPath)
-                        : ""
-                fillMode: Image.PreserveAspectCrop
-                smooth: true
-                visible: status === Image.Ready
+            // Atmospheric Ambilight Aura Glow
+            Rectangle {
+                id: ambilightGlow
+                anchors.centerIn: parent
+                width: parent.width * 1.15
+                height: parent.height * 1.15
+                radius: parent.width * 0.25
+                color: Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.35)
+                opacity: playbackController.isPlaying ? 0.8 : 0.0
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 600 }
+                }
+
+                SequentialAnimation on scale {
+                    loops: Animation.Infinite
+                    running: playbackController.isPlaying
+                    NumberAnimation { to: 1.05; duration: 2500; easing.type: Easing.InOutQuad }
+                    NumberAnimation { to: 0.98; duration: 2500; easing.type: Easing.InOutQuad }
+                }
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: -10
+                    source: (playbackController.trackArtworkPath && playbackController.trackArtworkPath.length > 0)
+                            ? ("file:///" + playbackController.trackArtworkPath)
+                            : ""
+                    fillMode: Image.PreserveAspectCrop
+                    opacity: 0.35
+                    visible: status === Image.Ready
+                }
             }
 
-            Text {
-                anchors.centerIn: parent
-                text: "\u266B"
-                font.pixelSize: 80
-                color: Colors.textMuted
-                visible: !playbackController.trackArtworkPath || playbackController.trackArtworkPath.length === 0
+            // Crisp Foreground Album Artwork Card
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.cornerRadiusLarge
+                color: Colors.surfaceElevated
+                border.color: Colors.borderSubtle
+                border.width: 1
+                clip: true
+
+                Image {
+                    anchors.fill: parent
+                    source: (playbackController.trackArtworkPath && playbackController.trackArtworkPath.length > 0)
+                            ? ("file:///" + playbackController.trackArtworkPath)
+                            : ""
+                    fillMode: Image.PreserveAspectCrop
+                    smooth: true
+                    visible: status === Image.Ready
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "\u266B"
+                    font.pixelSize: 80
+                    color: Colors.textMuted
+                    visible: !playbackController.trackArtworkPath || playbackController.trackArtworkPath.length === 0
+                }
             }
         }
 

@@ -21,6 +21,13 @@ ApplicationWindow {
     property bool queueOpen: false
 
     Component.onCompleted: {
+        if (settingsService.accentColor && settingsService.accentColor.length > 0) {
+            Colors.accent = settingsService.accentColor;
+        }
+        if (settingsService.themeMode && settingsService.themeMode.length > 0) {
+            Colors.isDark = (settingsService.themeMode !== "Light");
+        }
+
         if (Screen.desktopAvailableWidth > 0 && Screen.desktopAvailableHeight > 0) {
             if (window.width > Screen.desktopAvailableWidth) {
                 window.width = Screen.desktopAvailableWidth * 0.9;
@@ -195,6 +202,19 @@ ApplicationWindow {
             onCloseRequested: {
                 window.queueOpen = false;
             }
+        }
+
+        // Global Modal Dialogs
+        CreatePlaylistDialog {
+            id: createPlaylistDialog
+        }
+
+        TagEditorDialog {
+            id: tagEditorDialog
+        }
+
+        AddToPlaylistDialog {
+            id: addToPlaylistDialog
         }
     }
 }
