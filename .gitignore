@@ -8,3 +8,10 @@ dist/
 *.zip
 .DS_Store
 Thumbs.db
+platforms/
+sqldrivers/
+imageformats/
+iconengines/
+networkinformation/
+tls/
+translations/
