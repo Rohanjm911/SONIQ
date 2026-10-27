@@ -18,7 +18,7 @@ ScrollView {
         // Header and Master Toggle
         Item {
             width: parent.width
-            height: Math.max(headerCol.implicitHeight, toggleRow.implicitHeight)
+            height: 56
 
             Column {
                 id: headerCol
@@ -154,7 +154,6 @@ ScrollView {
                     id: sliderRow
                     width: parent.width
                     height: 210
-                    spacing: Math.max(8, (width - (10 * 52)) / 9)
 
                     Repeater {
                         model: [
@@ -170,45 +169,47 @@ ScrollView {
                             { label: "16 kHz", band: 9 }
                         ]
 
-                        Column {
-                            width: 52
+                        Item {
+                            width: sliderRow.width / 10
                             height: parent.height
-                            spacing: 8
 
-                            Text {
-                                width: parent.width
-                                horizontalAlignment: Text.AlignHCenter
-                                text: {
-                                    var val = (dspService.gains10 && dspService.gains10.length > modelData.band)
-                                              ? dspService.gains10[modelData.band] : 0.0;
-                                    return (val > 0 ? "+" : "") + val.toFixed(1) + " dB";
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 8
+
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: {
+                                        var val = (dspService.gains10 && dspService.gains10.length > modelData.band)
+                                                  ? dspService.gains10[modelData.band] : 0.0;
+                                        return (val > 0 ? "+" : "") + val.toFixed(1) + " dB";
+                                    }
+                                    font.family: Typography.monospaceFamily
+                                    font.pixelSize: Typography.sizeMicro
+                                    color: Colors.textMuted
                                 }
-                                font.family: Typography.monospaceFamily
-                                font.pixelSize: Typography.sizeMicro
-                                color: Colors.textMuted
-                            }
 
-                            Slider {
-                                id: bandSlider
-                                orientation: Qt.Vertical
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                height: 140
-                                from: -12.0
-                                to: 12.0
-                                value: (dspService.gains10 && dspService.gains10.length > modelData.band)
-                                       ? dspService.gains10[modelData.band] : 0.0
-                                enabled: dspService.enabled
-                                onMoved: dspService.setBandGain10(modelData.band, value)
-                            }
+                                Slider {
+                                    id: bandSlider
+                                    orientation: Qt.Vertical
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    height: 140
+                                    from: -12.0
+                                    to: 12.0
+                                    value: (dspService.gains10 && dspService.gains10.length > modelData.band)
+                                           ? dspService.gains10[modelData.band] : 0.0
+                                    enabled: dspService.enabled
+                                    onMoved: dspService.setBandGain10(modelData.band, value)
+                                }
 
-                            Text {
-                                width: parent.width
-                                horizontalAlignment: Text.AlignHCenter
-                                text: modelData.label
-                                font.family: Typography.monospaceFamily
-                                font.pixelSize: Typography.sizeMicro
-                                font.weight: Typography.weightMedium
-                                color: Colors.textPrimary
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: modelData.label
+                                    font.family: Typography.monospaceFamily
+                                    font.pixelSize: Typography.sizeMicro
+                                    font.weight: Typography.weightMedium
+                                    color: Colors.textPrimary
+                                }
                             }
                         }
                     }

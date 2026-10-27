@@ -29,7 +29,7 @@ ScrollView {
         // Header
         Item {
             width: parent.width
-            height: Math.max(headerCol.implicitHeight, inspectBtn.implicitHeight)
+            height: 56
 
             Column {
                 id: headerCol
