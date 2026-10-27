@@ -49,7 +49,7 @@ ScrollView {
 
             SoniqCard {
                 width: parent.width
-                height: 120
+                height: 140
 
                 Column {
                     anchors.fill: parent
@@ -57,10 +57,17 @@ ScrollView {
                     spacing: 16
 
                     // Theme selector
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 38
+
                         Column {
+                            anchors.left: parent.left
+                            anchors.right: themeRow.left
+                            anchors.rightMargin: 16
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
+
                             Text {
                                 text: "Theme Mode"
                                 font.family: Typography.fontFamily
@@ -76,11 +83,10 @@ ScrollView {
                             }
                         }
 
-                        Item { width: 1; height: 1; anchors.right: themeRow.left }
-
                         Row {
                             id: themeRow
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 8
 
                             SoniqButton {
@@ -104,32 +110,33 @@ ScrollView {
                     }
 
                     // Accent Colors
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 36
+
                         Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: "Accent Color"
                             font.family: Typography.fontFamily
                             font.pixelSize: Typography.sizeBody
                             font.weight: Typography.weightMedium
                             color: Colors.textPrimary
-                            anchors.verticalCenter: parent.verticalCenter
                         }
-
-                        Item { width: 1; height: 1; anchors.right: accentRow.left }
 
                         Row {
                             id: accentRow
                             anchors.right: parent.right
-                            spacing: 10
                             anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
 
                             Repeater {
                                 model: ["#FA2D48", "#3B82F6", "#10B981", "#8B5CF6", "#F59E0B"]
 
                                 Rectangle {
-                                    width: 24
-                                    height: 24
-                                    radius: 12
+                                    width: 26
+                                    height: 26
+                                    radius: 13
                                     color: modelData
                                     border.color: Colors.accent === modelData ? "#FFFFFF" : "transparent"
                                     border.width: 2
@@ -166,17 +173,25 @@ ScrollView {
 
             SoniqCard {
                 width: parent.width
-                height: 140
+                height: 156
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 16
 
-                    Row {
+                    // WASAPI Exclusive Mode
+                    Item {
                         width: parent.width
+                        height: 40
+
                         Column {
+                            anchors.left: parent.left
+                            anchors.right: exclSwitch.left
+                            anchors.rightMargin: 16
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
+
                             Text {
                                 text: "WASAPI Exclusive Mode"
                                 font.family: Typography.fontFamily
@@ -192,20 +207,27 @@ ScrollView {
                             }
                         }
 
-                        Item { width: 1; height: 1; anchors.right: exclSwitch.left }
-
                         Switch {
                             id: exclSwitch
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             checked: settingsService.exclusiveMode
                             onToggled: settingsService.exclusiveMode = checked
                         }
                     }
 
-                    Row {
+                    // Hardware Buffer Size
+                    Item {
                         width: parent.width
+                        height: 40
+
                         Column {
+                            anchors.left: parent.left
+                            anchors.right: bufCombo.left
+                            anchors.rightMargin: 16
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
+
                             Text {
                                 text: "Hardware Buffer Size"
                                 font.family: Typography.fontFamily
@@ -221,11 +243,10 @@ ScrollView {
                             }
                         }
 
-                        Item { width: 1; height: 1; anchors.right: bufCombo.left }
-
                         ComboBox {
                             id: bufCombo
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             model: ["512 frames (~11 ms)", "1024 frames (~23 ms)", "2048 frames (~46 ms)"]
                             currentIndex: 1
                         }
@@ -255,27 +276,27 @@ ScrollView {
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 4
+                    spacing: 6
 
                     Text {
                         text: "SONIQ — Pure Sound. Infinite Possibilities."
                         font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeTitleSmall
+                        font.pixelSize: Typography.sizeBody
                         font.weight: Typography.weightBold
                         color: Colors.textPrimary
                     }
 
                     Text {
-                        text: "Version 1.0.0 (Phase 1 Foundation) • Built with C++20, Qt 6.8.2, and Windows WASAPI"
+                        text: "Version 1.0.0 • Built with C++20, Qt 6.8.2, and Windows WASAPI"
                         font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeBody
+                        font.pixelSize: Typography.sizeCaption
                         color: Colors.textSecondary
                     }
 
                     Text {
                         text: "Offline-first desktop architecture with zero cloud tracking and bit-perfect playback."
                         font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeCaption
+                        font.pixelSize: Typography.sizeMicro
                         color: Colors.textMuted
                     }
                 }

@@ -191,6 +191,7 @@ bool DatabaseManager::runMigrations() {
 }
 
 int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     QSqlQuery query(m_db);
     query.prepare(
         "INSERT INTO tracks ("
@@ -238,6 +239,7 @@ int64_t DatabaseManager::insertOrUpdateTrack(const TrackRecord& track) {
 }
 
 bool DatabaseManager::removeTrack(int64_t trackId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM tracks WHERE id = :id;");
     query.bindValue(":id", static_cast<qint64>(trackId));
@@ -245,6 +247,7 @@ bool DatabaseManager::removeTrack(int64_t trackId) {
 }
 
 bool DatabaseManager::removeTrackByPath(const std::string& filePath) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM tracks WHERE file_path = :path;");
     query.bindValue(":path", QString::fromStdString(filePath));
@@ -280,6 +283,7 @@ static TrackRecord readTrackRecord(const QSqlQuery& q) {
 }
 
 std::vector<TrackRecord> DatabaseManager::getAllTracks(const std::string& sortBy) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
     QSqlQuery query(m_db);
     QString sql = "SELECT * FROM tracks ORDER BY " + QString::fromStdString(sortBy) + ";";
@@ -292,6 +296,7 @@ std::vector<TrackRecord> DatabaseManager::getAllTracks(const std::string& sortBy
 }
 
 std::vector<TrackRecord> DatabaseManager::searchTracks(const std::string& queryString) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<TrackRecord> results;
     QSqlQuery query(m_db);
     query.prepare(

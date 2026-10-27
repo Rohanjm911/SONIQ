@@ -12,9 +12,7 @@ Item {
         id: folderDialog
         title: "Select Music Folder"
         onAccepted: {
-            var path = folderDialog.selectedFolder.toString();
-            if (path.startsWith("file:///")) path = path.substring(8);
-            root.scanFolderRequested(path);
+            root.scanFolderRequested(folderDialog.selectedFolder.toString());
         }
     }
 
@@ -24,71 +22,72 @@ Item {
         spacing: 16
 
         // Header and Search Bar
-        Row {
+        Item {
             width: parent.width
-            spacing: 16
+            height: 38
 
-            Text {
-                text: "Songs"
-                font.family: Typography.fontFamily
-                font.pixelSize: Typography.sizeTitleLarge
-                font.weight: Typography.weightBold
-                color: Colors.textPrimary
+            Row {
+                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-            }
+                spacing: 16
 
-            Rectangle {
-                width: 280
-                height: 36
-                radius: Theme.cornerRadiusSmall
-                color: Colors.surfaceElevated
-                border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
-                anchors.verticalCenter: parent.verticalCenter
+                Text {
+                    text: "Songs"
+                    font.family: Typography.fontFamily
+                    font.pixelSize: Typography.sizeTitleLarge
+                    font.weight: Typography.weightBold
+                    color: Colors.textPrimary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-                Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 8
+                Rectangle {
+                    width: 280
+                    height: 36
+                    radius: Theme.cornerRadiusSmall
+                    color: Colors.surfaceElevated
+                    border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
+                    anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
-                        text: "🔍"
-                        font.pixelSize: 12
-                        color: Colors.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    TextInput {
-                        id: searchInput
-                        width: parent.width - 30
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeBody
-                        color: Colors.textPrimary
-                        selectByMouse: true
-                        onTextChanged: libraryModel.search(text)
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        spacing: 8
 
                         Text {
-                            visible: parent.text.length === 0
-                            text: "Search songs, artists, albums..."
-                            font.family: Typography.fontFamily
-                            font.pixelSize: Typography.sizeBody
+                            text: "🔍"
+                            font.pixelSize: 12
                             color: Colors.textMuted
                             anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        TextInput {
+                            id: searchInput
+                            width: parent.width - 30
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeBody
+                            color: Colors.textPrimary
+                            selectByMouse: true
+                            onTextChanged: libraryModel.search(text)
+
+                            Text {
+                                visible: parent.text.length === 0
+                                text: "Search songs, artists, albums..."
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                color: Colors.textMuted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                     }
                 }
             }
 
-            Item {
-                width: 1
-                height: 1
-                anchors.right: addFolderBtn.left
-            }
-
             SoniqButton {
                 id: addFolderBtn
                 anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 text: "Add Folder"
                 iconText: "＋"
                 onClicked: folderDialog.open()

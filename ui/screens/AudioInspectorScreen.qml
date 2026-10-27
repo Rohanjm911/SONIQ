@@ -15,7 +15,6 @@ ScrollView {
         nameFilters: ["Audio Files (*.flac *.wav *.mp3 *.m4a *.aac *.ogg *.opus *.aiff *.ape *.wv *.dsf *.dff)"]
         onAccepted: {
             var path = fileDialog.selectedFile.toString();
-            if (path.startsWith("file:///")) path = path.substring(8);
             audioInspector.inspectFile(path);
         }
     }
@@ -28,11 +27,18 @@ ScrollView {
         bottomPadding: 32
 
         // Header
-        Row {
+        Item {
             width: parent.width
+            height: Math.max(headerCol.implicitHeight, inspectBtn.implicitHeight)
 
             Column {
+                id: headerCol
+                anchors.left: parent.left
+                anchors.right: inspectBtn.left
+                anchors.rightMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: 4
+
                 Text {
                     text: "Audio File Inspector"
                     font.family: Typography.fontFamily
@@ -48,11 +54,10 @@ ScrollView {
                 }
             }
 
-            Item { width: 1; height: 1; anchors.right: inspectBtn.left }
-
             SoniqButton {
                 id: inspectBtn
                 anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 text: "Inspect File"
                 iconText: "🔍"
                 onClicked: fileDialog.open()
@@ -64,16 +69,19 @@ ScrollView {
             width: parent.width
             height: 96
 
-            Row {
+            Item {
                 anchors.fill: parent
                 anchors.margins: 20
-                spacing: 16
 
                 Rectangle {
+                    id: iconRect
                     width: 56
                     height: 56
                     radius: 12
                     color: Colors.surfaceElevated
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+
                     Text {
                         anchors.centerIn: parent
                         text: "♫"
@@ -83,11 +91,14 @@ ScrollView {
                 }
 
                 Column {
+                    anchors.left: iconRect.right
+                    anchors.right: parent.right
+                    anchors.leftMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 90
                     spacing: 4
 
                     Text {
+                        width: parent.width
                         text: audioInspector.title.length > 0 ? audioInspector.title : playbackController.trackTitle
                         font.family: Typography.fontFamily
                         font.pixelSize: Typography.sizeTitleMedium
@@ -97,6 +108,7 @@ ScrollView {
                     }
 
                     Text {
+                        width: parent.width
                         text: audioInspector.technicalSummary.length > 0 ? audioInspector.technicalSummary : playbackController.trackFormat
                         font.family: Typography.monospaceFamily
                         font.pixelSize: Typography.sizeBody
@@ -110,7 +122,7 @@ ScrollView {
         // Audio Stream Specifications Grid
         SoniqCard {
             width: parent.width
-            height: 220
+            height: 230
 
             Column {
                 anchors.fill: parent
@@ -126,9 +138,10 @@ ScrollView {
                 }
 
                 Grid {
+                    id: specGrid
                     columns: 3
                     width: parent.width
-                    rowSpacing: 16
+                    rowSpacing: 18
                     columnSpacing: 16
 
                     Repeater {
@@ -142,7 +155,7 @@ ScrollView {
                         ]
 
                         Column {
-                            width: (parent.width - 32) / 3
+                            width: (specGrid.width - 32) / 3
                             spacing: 4
 
                             Text {
@@ -158,6 +171,8 @@ ScrollView {
                                 font.pixelSize: Typography.sizeTitleSmall
                                 font.weight: Typography.weightMedium
                                 color: Colors.textPrimary
+                                elide: Text.ElideRight
+                                width: parent.width
                             }
                         }
                     }
@@ -181,27 +196,31 @@ ScrollView {
                         width: 8
                         height: 8
                         radius: 4
+                        color: audioInspector.isBitPerfectEligible ? Colors.success : Colors.warning
                         anchors.verticalCenter: parent.verticalCenter
-                        color: audioInspector.isBitPerfectEligible ? Colors.bitPerfectVerified : Colors.warning
                     }
+
                     Text {
                         text: "BIT-PERFECT AUDIT"
                         font.family: Typography.monospaceFamily
                         font.pixelSize: Typography.sizeMicro
                         font.weight: Typography.weightBold
                         color: Colors.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
                 Text {
                     width: parent.width
+                    wrapMode: Text.WordWrap
                     text: audioInspector.bitPerfectAssessment.length > 0
                           ? audioInspector.bitPerfectAssessment
-                          : "Source stream is bit-perfect eligible. With WASAPI Exclusive mode and DSP bypassed, original raw samples pass untouched to DAC."
+                          : (playbackController.bitPerfectStatus === "Verified"
+                             ? "Source stream is bit-perfect eligible. With WASAPI Exclusive mode and DSP bypassed, original raw samples pass untouched to DAC."
+                             : "Signal is currently being routed through shared mixer or DSP pipeline.")
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeBody
-                    color: Colors.textPrimary
-                    wrapMode: Text.WordWrap
+                    color: Colors.textSecondary
                 }
             }
         }

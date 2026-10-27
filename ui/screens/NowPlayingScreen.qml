@@ -98,20 +98,22 @@ Item {
                 onMoved: playbackController.seek(value)
             }
 
-            Row {
+            Item {
                 width: parent.width
+                height: 16
+
                 Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
                     text: playbackController.positionFormatted
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeCaption
                     color: Colors.textMuted
                 }
 
-                Item { width: 1; height: 1; anchors.right: durText.left }
-
                 Text {
-                    id: durText
                     anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     text: playbackController.durationFormatted
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeCaption

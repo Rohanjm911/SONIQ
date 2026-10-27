@@ -13,12 +13,7 @@ Item {
         id: folderDialog
         title: "Select Music Folder to Scan"
         onAccepted: {
-            var path = folderDialog.selectedFolder.toString();
-            // Strip file:// prefix on Windows
-            if (path.startsWith("file:///")) {
-                path = path.substring(8);
-            }
-            root.scanFolderRequested(path);
+            root.scanFolderRequested(folderDialog.selectedFolder.toString());
         }
     }
 

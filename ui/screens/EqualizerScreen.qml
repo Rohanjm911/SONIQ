@@ -16,11 +16,18 @@ ScrollView {
         bottomPadding: 32
 
         // Header and Master Toggle
-        Row {
+        Item {
             width: parent.width
+            height: Math.max(headerCol.implicitHeight, toggleRow.implicitHeight)
 
             Column {
+                id: headerCol
+                anchors.left: parent.left
+                anchors.right: toggleRow.left
+                anchors.rightMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
                 spacing: 4
+
                 Text {
                     text: "Equalizer & DSP"
                     font.family: Typography.fontFamily
@@ -36,13 +43,11 @@ ScrollView {
                 }
             }
 
-            Item { width: 1; height: 1; anchors.right: toggleRow.left }
-
             Row {
                 id: toggleRow
                 anchors.right: parent.right
-                spacing: 12
                 anchors.verticalCenter: parent.verticalCenter
+                spacing: 12
 
                 Text {
                     text: dspService.enabled ? "ENABLED" : "BYPASS"
@@ -91,30 +96,35 @@ ScrollView {
         }
 
         // Controls Bar: Presets & Reset
-        Row {
+        Item {
             width: parent.width
-            spacing: 12
+            height: 38
 
-            Text {
-                text: "Preset:"
-                font.family: Typography.fontFamily
-                font.pixelSize: Typography.sizeBody
-                color: Colors.textSecondary
+            Row {
+                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-            }
+                spacing: 12
 
-            ComboBox {
-                id: presetCombo
-                model: dspService.presets
-                anchors.verticalCenter: parent.verticalCenter
-                onActivated: dspService.applyPreset(currentText)
-            }
+                Text {
+                    text: "Preset:"
+                    font.family: Typography.fontFamily
+                    font.pixelSize: Typography.sizeBody
+                    color: Colors.textSecondary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-            Item { width: 1; height: 1; anchors.right: resetBtn.left }
+                ComboBox {
+                    id: presetCombo
+                    model: dspService.presets
+                    anchors.verticalCenter: parent.verticalCenter
+                    onActivated: dspService.applyPreset(currentText)
+                }
+            }
 
             SoniqButton {
                 id: resetBtn
                 anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 variant: "secondary"
                 text: "Reset EQ"
                 onClicked: dspService.resetEq()
@@ -124,7 +134,7 @@ ScrollView {
         // Graphic Equalizer Card
         SoniqCard {
             width: parent.width
-            height: 280
+            height: 290
 
             Column {
                 anchors.fill: parent
@@ -141,9 +151,10 @@ ScrollView {
 
                 // 10 Frequency Band Sliders
                 Row {
+                    id: sliderRow
                     width: parent.width
-                    height: 200
-                    spacing: (width - (10 * 36)) / 9
+                    height: 210
+                    spacing: Math.max(8, (width - (10 * 52)) / 9)
 
                     Repeater {
                         model: [
@@ -160,14 +171,16 @@ ScrollView {
                         ]
 
                         Column {
-                            width: 36
+                            width: 52
                             height: parent.height
                             spacing: 8
 
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
                                 text: {
-                                    var val = dspService.gains10[modelData.band] || 0.0;
+                                    var val = (dspService.gains10 && dspService.gains10.length > modelData.band)
+                                              ? dspService.gains10[modelData.band] : 0.0;
                                     return (val > 0 ? "+" : "") + val.toFixed(1) + " dB";
                                 }
                                 font.family: Typography.monospaceFamily
@@ -182,13 +195,15 @@ ScrollView {
                                 height: 140
                                 from: -12.0
                                 to: 12.0
-                                value: dspService.gains10[modelData.band] || 0.0
+                                value: (dspService.gains10 && dspService.gains10.length > modelData.band)
+                                       ? dspService.gains10[modelData.band] : 0.0
                                 enabled: dspService.enabled
                                 onMoved: dspService.setBandGain10(modelData.band, value)
                             }
 
                             Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: parent.width
+                                horizontalAlignment: Text.AlignHCenter
                                 text: modelData.label
                                 font.family: Typography.monospaceFamily
                                 font.pixelSize: Typography.sizeMicro
@@ -209,26 +224,30 @@ ScrollView {
             // Master Preamp
             SoniqCard {
                 width: (parent.width - 16) / 2
-                height: 120
+                height: 140
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 8
+                    spacing: 12
 
-                    Row {
+                    Item {
                         width: parent.width
+                        height: 20
+
                         Text {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
                             text: "PREAMP GAIN"
                             font.family: Typography.monospaceFamily
                             font.pixelSize: Typography.sizeMicro
                             font.weight: Typography.weightBold
                             color: Colors.textMuted
                         }
-                        Item { width: 1; height: 1; anchors.right: preVal.left }
+
                         Text {
-                            id: preVal
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             text: (dspService.preampDb > 0 ? "+" : "") + dspService.preampDb.toFixed(1) + " dB"
                             font.family: Typography.monospaceFamily
                             font.pixelSize: Typography.sizeMicro
@@ -250,17 +269,25 @@ ScrollView {
             // Headphone Crossfeed & Limiter
             SoniqCard {
                 width: (parent.width - 16) / 2
-                height: 120
+                height: 140
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 12
 
-                    Row {
+                    // Crossfeed Row
+                    Item {
                         width: parent.width
+                        height: 40
+
                         Column {
+                            anchors.left: parent.left
+                            anchors.right: cfSwitch.left
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
+
                             Text {
                                 text: "Binaural Crossfeed"
                                 font.family: Typography.fontFamily
@@ -275,29 +302,47 @@ ScrollView {
                                 color: Colors.textMuted
                             }
                         }
-                        Item { width: 1; height: 1; anchors.right: cfSwitch.left }
+
                         Switch {
                             id: cfSwitch
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             checked: dspService.crossfeedEnabled
                             onToggled: dspService.crossfeedEnabled = checked
                         }
                     }
 
-                    Row {
+                    // Limiter Row
+                    Item {
                         width: parent.width
-                        Text {
-                            text: "Peak Limiter / Anti-Clipping"
-                            font.family: Typography.fontFamily
-                            font.pixelSize: Typography.sizeBody
-                            font.weight: Typography.weightMedium
-                            color: Colors.textPrimary
+                        height: 40
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: limSwitch.left
+                            anchors.rightMargin: 12
                             anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+
+                            Text {
+                                text: "Peak Limiter / Anti-Clipping"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                            }
+                            Text {
+                                text: "Prevents digital inter-sample clipping"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                            }
                         }
-                        Item { width: 1; height: 1; anchors.right: limSwitch.left }
+
                         Switch {
                             id: limSwitch
                             anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
                             checked: dspService.limiterEnabled
                             onToggled: dspService.limiterEnabled = checked
                         }

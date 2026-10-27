@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <mutex>
 
 namespace soniq::db {
 
@@ -91,6 +92,7 @@ private:
 
     QSqlDatabase m_db;
     QString m_connectionName;
+    mutable std::mutex m_mutex;
 };
 
 } // namespace soniq::db

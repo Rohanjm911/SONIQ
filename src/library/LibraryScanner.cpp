@@ -4,6 +4,8 @@
 #include "core/Logger.hpp"
 #include <filesystem>
 #include <algorithm>
+#include <QUrl>
+#include <QDir>
 
 namespace soniq::library {
 
@@ -28,24 +30,38 @@ void LibraryScanner::cancel() {
 void LibraryScanner::scanDirectory(const QString& directoryPath) {
     if (m_scanning) return;
 
+    QString cleanPath = directoryPath;
+    QUrl url(directoryPath);
+    if (url.isValid() && (url.isLocalFile() || url.scheme() == "file")) {
+        cleanPath = url.toLocalFile();
+    } else {
+        if (cleanPath.startsWith("file:///")) cleanPath = cleanPath.mid(8);
+        else if (cleanPath.startsWith("file://")) cleanPath = cleanPath.mid(7);
+        cleanPath = QUrl::fromPercentEncoding(cleanPath.toUtf8());
+    }
+
+    cleanPath = QDir::cleanPath(cleanPath);
+    cleanPath = QDir::toNativeSeparators(cleanPath);
+    SONIQ_LOG_INFO("Starting library scan for directory: {}", cleanPath.toStdString());
+
     cancel();
     m_scanning = true;
     m_cancelRequested = false;
     emit scanningChanged();
 
-    m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, directoryPath);
+    m_workerThread = std::make_unique<std::thread>(&LibraryScanner::doScan, this, cleanPath);
 }
 
 void LibraryScanner::doScan(const QString& path) {
     emit scanStarted(path);
 
     namespace fs = std::filesystem;
-    std::string stdPath = path.toStdString();
+    fs::path scanFsPath(path.toStdWString());
     std::vector<fs::path> audioFiles;
 
     std::error_code ec;
-    if (fs::exists(stdPath, ec) && fs::is_directory(stdPath, ec)) {
-        for (const auto& entry : fs::recursive_directory_iterator(stdPath, fs::directory_options::skip_permission_denied, ec)) {
+    if (fs::exists(scanFsPath, ec) && fs::is_directory(scanFsPath, ec)) {
+        for (const auto& entry : fs::recursive_directory_iterator(scanFsPath, fs::directory_options::skip_permission_denied, ec)) {
             if (m_cancelRequested) break;
             if (entry.is_regular_file(ec)) {
                 std::string ext = entry.path().extension().string();
@@ -54,10 +70,13 @@ void LibraryScanner::doScan(const QString& path) {
                 }
             }
         }
+    } else {
+        SONIQ_LOG_ERROR("Scan target directory does not exist or is not a directory: {}", path.toStdString());
     }
 
     const int total = static_cast<int>(audioFiles.size());
     int addedCount = 0;
+    SONIQ_LOG_INFO("Discovered {} potential audio files to scan in: {}", total, path.toStdString());
 
     for (int i = 0; i < total; ++i) {
         if (m_cancelRequested) break;
