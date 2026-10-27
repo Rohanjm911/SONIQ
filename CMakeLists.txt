@@ -78,7 +78,7 @@ if(WIN32)
 endif()
 
 # Main Application Executable
-add_executable(soniq_app
+add_executable(soniq_app WIN32
     app/main.cpp
     resources.qrc
 )
