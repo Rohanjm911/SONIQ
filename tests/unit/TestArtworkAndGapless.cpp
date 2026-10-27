@@ -215,6 +215,35 @@ void testLibraryScannerAndWorkerThread() {
     model.refresh();
     assert(model.rowCount() >= 2 && "LibraryModel should contain scanned tracks");
 
+    // Test sorting operations
+    assert(model.sortField() == "title");
+    assert(model.sortAscending() == true);
+
+    // Toggle title sort to descending
+    model.sortBy("title");
+    assert(model.sortAscending() == false);
+    assert(model.sortLabel() == "Title (Z → A)");
+
+    // Toggle title sort back to ascending
+    model.sortBy("title");
+    assert(model.sortAscending() == true);
+    assert(model.sortLabel() == "Title (A → Z)");
+
+    // Test duration sort
+    model.sortBy("duration");
+    assert(model.sortField() == "duration");
+    assert(model.sortAscending() == true);
+
+    // Test setSort
+    model.setSort("album", true);
+    assert(model.sortField() == "album");
+    assert(model.sortAscending() == true);
+
+    // Test shuffleList
+    model.shuffleList();
+    assert(model.sortField() == "custom");
+    assert(model.sortLabel() == "Shuffled");
+
     // Clean up temporary test files & db
     ec.clear();
     fs::remove_all(tempDir, ec);

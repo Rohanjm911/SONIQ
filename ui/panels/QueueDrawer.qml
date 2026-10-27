@@ -98,16 +98,43 @@ Rectangle {
             }
         }
 
-        // Section: UP NEXT
-        Row {
+        // Section: UP NEXT + Quick Sort & Shuffle
+        Item {
             width: parent.width
+            height: 28
+
             Text {
                 text: "UP NEXT"
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeMicro
                 font.weight: Typography.weightBold
                 color: Colors.textMuted
+                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+
+                SoniqIconButton {
+                    width: 28
+                    height: 28
+                    iconSymbol: "🔀"
+                    iconPixelSize: 12
+                    tooltipText: "Shuffle Queue"
+                    onClicked: libraryModel.shuffleList()
+                }
+
+                SoniqIconButton {
+                    width: 28
+                    height: 28
+                    iconSymbol: "⇅"
+                    iconPixelSize: 13
+                    tooltipText: "Sort A-Z"
+                    onClicked: libraryModel.sortBy("title")
+                }
             }
         }
 

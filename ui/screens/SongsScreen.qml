@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import "../themes"
 import "../components"
@@ -21,7 +22,7 @@ Item {
         anchors.margins: 24
         spacing: 16
 
-        // Header and Search Bar
+        // Header, Search Bar, and Sort Controls
         Item {
             width: parent.width
             height: 38
@@ -41,7 +42,7 @@ Item {
                 }
 
                 Rectangle {
-                    width: 280
+                    width: 260
                     height: 36
                     radius: Theme.cornerRadiusSmall
                     color: Colors.surfaceElevated
@@ -84,17 +85,41 @@ Item {
                 }
             }
 
-            SoniqButton {
-                id: addFolderBtn
+            Row {
+                id: topActionRow
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Add Folder"
-                iconText: "＋"
-                onClicked: folderDialog.open()
+                spacing: 8
+
+                // Sort Dropdown Button
+                SoniqButton {
+                    id: sortBtn
+                    variant: "secondary"
+                    iconText: "⇅"
+                    text: libraryModel.sortLabel
+                    onClicked: sortPopup.visible ? sortPopup.close() : sortPopup.open()
+                }
+
+                // Shuffle Playlist Button
+                SoniqButton {
+                    id: shuffleBtn
+                    variant: "secondary"
+                    iconText: "🔀"
+                    text: "Shuffle"
+                    onClicked: libraryModel.shuffleList()
+                }
+
+                // Add Folder Button
+                SoniqButton {
+                    id: addFolderBtn
+                    text: "Add Folder"
+                    iconText: "＋"
+                    onClicked: folderDialog.open()
+                }
             }
         }
 
-        // Table Column Headers
+        // Table Column Headers (Clickable for instant column sorting)
         Rectangle {
             width: parent.width
             height: 32
@@ -109,40 +134,80 @@ Item {
                 width: Math.max(180, (parent.width - 154 - 80) * 0.50)
                 spacing: 12
 
-                Text {
+                Item {
                     width: 28
-                    text: "#"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
+                    height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "#" + (libraryModel.sortField === "track_number" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: libraryModel.sortField === "track_number" ? Colors.accent : (hNumMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    }
+
+                    MouseArea {
+                        id: hNumMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.sortBy("track_number")
+                    }
                 }
 
-                Text {
-                    text: "TITLE"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
+                Item {
+                    height: parent.height
+                    width: parent.width - 40
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "TITLE" + (libraryModel.sortField === "title" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: libraryModel.sortField === "title" ? Colors.accent : (hTitleMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    }
+
+                    MouseArea {
+                        id: hTitleMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.sortBy("title")
+                    }
                 }
             }
 
             // 2. Center: ALBUM
-            Text {
-                id: headerAlbum
+            Item {
+                id: headerAlbumItem
                 anchors.left: headerLeftGroup.right
                 anchors.leftMargin: 16
                 anchors.right: headerRightGroup.left
                 anchors.rightMargin: 16
                 anchors.verticalCenter: parent.verticalCenter
-                text: "ALBUM"
-                font.family: Typography.monospaceFamily
-                font.pixelSize: Typography.sizeMicro
-                font.weight: Typography.weightBold
-                color: Colors.textMuted
-                elide: Text.ElideRight
+                height: parent.height
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "ALBUM" + (libraryModel.sortField === "album" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                    font.family: Typography.monospaceFamily
+                    font.pixelSize: Typography.sizeMicro
+                    font.weight: Typography.weightBold
+                    color: libraryModel.sortField === "album" ? Colors.accent : (hAlbumMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    elide: Text.ElideRight
+                }
+
+                MouseArea {
+                    id: hAlbumMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: libraryModel.sortBy("album")
+                }
             }
 
             // 3. Right Group: FORMAT + FAV + TIME
@@ -153,37 +218,152 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
 
-                Text {
+                Item {
                     width: 58
-                    text: "FORMAT"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
-                    horizontalAlignment: Text.AlignHCenter
+                    height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "FORMAT" + (libraryModel.sortField === "format" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: libraryModel.sortField === "format" ? Colors.accent : (hFmtMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    }
+
+                    MouseArea {
+                        id: hFmtMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.sortBy("format")
+                    }
                 }
 
-                Text {
+                Item {
                     width: 28
-                    text: "FAV"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
-                    horizontalAlignment: Text.AlignHCenter
+                    height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "FAV" + (libraryModel.sortField === "favorite" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: libraryModel.sortField === "favorite" ? Colors.accent : (hFavMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    }
+
+                    MouseArea {
+                        id: hFavMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.sortBy("favorite")
+                    }
                 }
 
-                Text {
+                Item {
                     width: 44
-                    text: "TIME"
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: Colors.textMuted
-                    horizontalAlignment: Text.AlignRight
+                    height: parent.height
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "TIME" + (libraryModel.sortField === "duration" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
+                        font.family: Typography.monospaceFamily
+                        font.pixelSize: Typography.sizeMicro
+                        font.weight: Typography.weightBold
+                        color: libraryModel.sortField === "duration" ? Colors.accent : (hTimeMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    }
+
+                    MouseArea {
+                        id: hTimeMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: libraryModel.sortBy("duration")
+                    }
+                }
+            }
+        }
+
+        // Sort Dropdown Menu Popup
+        Popup {
+            id: sortPopup
+            x: Math.max(10, root.width - width - 24)
+            y: 44
+            width: 240
+            padding: 6
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+            background: Rectangle {
+                radius: Theme.cornerRadiusSmall
+                color: Colors.surfaceElevated
+                border.color: Colors.borderSubtle
+                border.width: 1
+            }
+            contentItem: Column {
+                spacing: 2
+                Repeater {
+                    model: [
+                        { label: "Title (A → Z)", field: "title", asc: true },
+                        { label: "Title (Z → A)", field: "title", asc: false },
+                        { label: "Artist (A → Z)", field: "artist", asc: true },
+                        { label: "Artist (Z → A)", field: "artist", asc: false },
+                        { label: "Album (A → Z)", field: "album", asc: true },
+                        { label: "Album (Z → A)", field: "album", asc: false },
+                        { label: "Duration (Shortest First)", field: "duration", asc: true },
+                        { label: "Duration (Longest First)", field: "duration", asc: false },
+                        { label: "Date Added (Newest First)", field: "date_added", asc: false },
+                        { label: "Format (Lossless First)", field: "format", asc: true },
+                        { label: "Favorites First", field: "favorite", asc: false },
+                        { label: "Most Played First", field: "play_count", asc: false }
+                    ]
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 30
+                        radius: 4
+                        property bool isSelected: libraryModel.sortField === modelData.field && libraryModel.sortAscending === modelData.asc
+                        color: isSelected ? Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.15) : (itemMouse.containsMouse ? Colors.surfaceHover : "transparent")
+
+                        MouseArea {
+                            id: itemMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                libraryModel.setSort(modelData.field, modelData.asc);
+                                sortPopup.close();
+                            }
+                        }
+
+                        Item {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeCaption
+                                font.weight: isSelected ? Typography.weightBold : Typography.weightRegular
+                                color: isSelected ? Colors.accent : Colors.textPrimary
+                            }
+
+                            Text {
+                                visible: isSelected
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "✓"
+                                font.pixelSize: 12
+                                color: Colors.accent
+                            }
+                        }
+                    }
                 }
             }
         }
