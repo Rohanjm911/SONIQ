@@ -70,7 +70,7 @@ private:
     IAudioRenderClient* m_renderClient{nullptr};
     HANDLE m_audioEvent{nullptr};
 
-    std::mutex m_mutex;
+    mutable std::recursive_mutex m_mutex;
     bool m_coInitialized{false};
 };
 

@@ -126,7 +126,7 @@ std::vector<AudioDeviceInfo> WASAPIAudioOutput::availableDevices() {
 core::Result<void> WASAPIAudioOutput::open(const core::AudioFormat& format,
                                           const std::string& deviceId,
                                           core::OutputMode mode) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     close();
 
     m_format = format;
@@ -256,13 +256,13 @@ core::Result<void> WASAPIAudioOutput::open(const core::AudioFormat& format,
 }
 
 void WASAPIAudioOutput::close() {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     stop();
-    std::lock_guard<std::mutex> lock(m_mutex);
     releaseCOM();
 }
 
 core::Result<void> WASAPIAudioOutput::start() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (m_audioClient) {
         HRESULT hr = m_audioClient->Start();
         if (SUCCEEDED(hr)) {
@@ -275,7 +275,7 @@ core::Result<void> WASAPIAudioOutput::start() {
 }
 
 void WASAPIAudioOutput::pause() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (m_audioClient && m_running) {
         m_audioClient->Stop();
         m_running = false;
@@ -283,16 +283,18 @@ void WASAPIAudioOutput::pause() {
 }
 
 void WASAPIAudioOutput::stop() {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_running = false;
     if (m_audioClient) {
         m_audioClient->Stop();
         m_audioClient->Reset();
-        m_running = false;
     }
 }
 
 size_t WASAPIAudioOutput::write(const float* data, size_t frames) {
-    if (!m_running || !m_audioClient || !m_renderClient || data == nullptr || frames == 0) return 0;
+    if (!m_running.load() || data == nullptr || frames == 0) return 0;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (!m_running.load() || !m_audioClient || !m_renderClient) return 0;
 
     UINT32 padding = 0;
     if (FAILED(m_audioClient->GetCurrentPadding(&padding))) {

@@ -130,6 +130,10 @@ int main(int argc, char* argv[]) {
                 SONIQ_LOG_INFO("Window positioned at ({}, {}) with dimensions {}x{} (Monitor Work Area: {}x{})",
                                x, y, w, h, avail.width(), avail.height());
             }
+            win->setVisible(true);
+            win->show();
+            win->raise();
+            win->requestActivate();
         }
     }
 
