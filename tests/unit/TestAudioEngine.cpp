@@ -1,7 +1,11 @@
 #include "audio/AudioPlaybackEngine.hpp"
+#include "audio/FFmpegAudioDecoder.hpp"
 #include "audio/output/NullAudioOutput.hpp"
 #include <cassert>
 #include <iostream>
+#include <filesystem>
+#include <fstream>
+#include <vector>
 
 void testAudioEngine() {
     using namespace soniq::audio;
@@ -54,6 +58,58 @@ void testAudioEngine() {
     engine.setMuted(false);
     assert(!engine.isMuted());
 
-    std::cout << "  [PASS] Output sink verification, bit-perfect validation, and engine state machine" << std::endl;
+    // 3. Test FFmpegAudioDecoder on file with spaces
+    {
+        namespace fs = std::filesystem;
+        fs::path tempDir = fs::temp_directory_path() / "soniq_decoder_test with spaces";
+        fs::create_directories(tempDir);
+        fs::path wavFile = tempDir / "test space song.wav";
+
+        // Create 0.25 second valid 44.1kHz stereo PCM WAV file
+        std::ofstream out(wavFile, std::ios::binary);
+        const uint32_t sampleRate = 44100;
+        const uint16_t channels = 2;
+        const uint16_t bitsPerSample = 16;
+        const uint32_t numSamples = sampleRate / 4;
+        const uint32_t dataBytes = numSamples * channels * (bitsPerSample / 8);
+        const uint32_t riffBytes = 36 + dataBytes;
+        const uint32_t byteRate = sampleRate * channels * (bitsPerSample / 8);
+        const uint16_t blockAlign = channels * (bitsPerSample / 8);
+
+        out.write("RIFF", 4);
+        out.write(reinterpret_cast<const char*>(&riffBytes), 4);
+        out.write("WAVE", 4);
+        out.write("fmt ", 4);
+        uint32_t fmtSize = 16;
+        out.write(reinterpret_cast<const char*>(&fmtSize), 4);
+        uint16_t audioFormat = 1;
+        out.write(reinterpret_cast<const char*>(&audioFormat), 2);
+        out.write(reinterpret_cast<const char*>(&channels), 2);
+        out.write(reinterpret_cast<const char*>(&sampleRate), 4);
+        out.write(reinterpret_cast<const char*>(&byteRate), 4);
+        out.write(reinterpret_cast<const char*>(&blockAlign), 2);
+        out.write(reinterpret_cast<const char*>(&bitsPerSample), 2);
+        out.write("data", 4);
+        out.write(reinterpret_cast<const char*>(&dataBytes), 4);
+        std::vector<int16_t> pcmData(numSamples * channels, 1000);
+        out.write(reinterpret_cast<const char*>(pcmData.data()), dataBytes);
+        out.close();
+
+        FFmpegAudioDecoder decoder;
+        auto res = decoder.open(wavFile.string());
+        assert(res.isOk() && "Decoder must open audio file with spaces");
+        assert(decoder.isOpen());
+        assert(decoder.format().sampleRate() == 44100);
+
+        std::vector<float> readBuf(512 * 2);
+        size_t framesRead = decoder.readFrames(readBuf.data(), 512);
+        assert(framesRead > 0 && "Decoder must read valid audio frames");
+        decoder.close();
+
+        std::error_code ec;
+        fs::remove_all(tempDir, ec);
+    }
+
+    std::cout << "  [PASS] Output sink verification, bit-perfect validation, engine state machine, and FFmpeg decoder file reading" << std::endl;
     std::cout << "All AudioPlaybackEngine Unit Tests PASSED successfully.\n" << std::endl;
 }

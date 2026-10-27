@@ -4,6 +4,7 @@
 #include <format>
 #include <algorithm>
 #include <cmath>
+#include <QString>
 
 namespace soniq::audio {
 
@@ -37,7 +38,8 @@ void FFmpegAudioDecoder::close() {
 }
 
 bool FFmpegAudioDecoder::openWavDirect(const std::string& filePath) {
-    m_wavFile.open(filePath, std::ios::binary);
+    std::filesystem::path fsPath(QString::fromStdString(filePath).toStdWString());
+    m_wavFile.open(fsPath, std::ios::binary);
     if (!m_wavFile.is_open()) return false;
 
     char riff[4];
@@ -129,13 +131,21 @@ bool FFmpegAudioDecoder::openFfmpegPipe(const std::string& filePath, double star
     // Seek argument before input for fast keyframe/demuxer seeking
     std::string seekArg = (startSeconds > 0.001) ? std::format("-ss {:.3f} ", startSeconds) : "";
 
+#if defined(_WIN32)
+    // On Windows, cmd.exe /c automatically strips the first and last quote if the command begins and ends with quotes.
+    // Wrapping the entire command in an additional pair of outer quotes ensures cmd.exe strips the wrapper quotes,
+    // leaving both the ffmpeg executable path and the file path properly quoted.
+    // _wpopen ensures Unicode file paths are handled properly without ANSI code-page loss.
+    std::wstring wExe = QString::fromStdString(ffmpegExe).toStdWString();
+    std::wstring wSeek = QString::fromStdString(seekArg).toStdWString();
+    std::wstring wPath = QString::fromStdString(filePath).toStdWString();
+
+    std::wstring cmd = L"\"\"" + wExe + L"\" -v quiet -hide_banner " + wSeek + L"-i \"" + wPath + L"\" -f f32le pipe:1\"";
+    m_pipeHandle = _wpopen(cmd.c_str(), L"rb");
+#else
     // Force decode into raw 32-bit float IEEE little-endian PCM on stdout pipe
     std::string cmd = std::format("\"{}\" -v quiet -hide_banner {} -i \"{}\" -f f32le pipe:1",
                                   ffmpegExe, seekArg, filePath);
-
-#if defined(_WIN32)
-    m_pipeHandle = _popen(cmd.c_str(), "rb");
-#else
     m_pipeHandle = popen(cmd.c_str(), "r");
 #endif
 

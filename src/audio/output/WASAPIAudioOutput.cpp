@@ -190,18 +190,36 @@ core::Result<void> WASAPIAudioOutput::open(const core::AudioFormat& format,
     }
 
     if (!m_exclusiveAcquired) {
-        // Shared mode fallback
-        WAVEFORMATEX* mixFormat = nullptr;
-        m_audioClient->GetMixFormat(&mixFormat);
-        WAVEFORMATEX* initFormat = mixFormat ? mixFormat : reinterpret_cast<WAVEFORMATEX*>(&wfx);
+        // Shared mode fallback: enable OS sample rate conversion to support any native stream sample rate seamlessly
+#ifndef AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM
+#define AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM 0x80000000
+#endif
+#ifndef AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY
+#define AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY 0x08000000
+#endif
 
+        DWORD sharedFlags = streamFlags | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
         hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-                                      streamFlags,
+                                      sharedFlags,
                                       bufferDuration,
                                       0,
-                                      initFormat,
+                                      reinterpret_cast<WAVEFORMATEX*>(&wfx),
                                       nullptr);
-        if (mixFormat) CoTaskMemFree(mixFormat);
+
+        if (FAILED(hr)) {
+            // Fallback: try device mixFormat directly if autoconvert is rejected
+            WAVEFORMATEX* mixFormat = nullptr;
+            m_audioClient->GetMixFormat(&mixFormat);
+            if (mixFormat) {
+                hr = m_audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
+                                              streamFlags,
+                                              bufferDuration,
+                                              0,
+                                              mixFormat,
+                                              nullptr);
+                CoTaskMemFree(mixFormat);
+            }
+        }
 
         if (FAILED(hr)) {
             releaseCOM();

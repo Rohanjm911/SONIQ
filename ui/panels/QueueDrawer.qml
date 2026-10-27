@@ -132,7 +132,8 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onDoubleClicked: libraryModel.getTrackAt(index)
+                    onClicked: playbackController.playFile(model.filePath)
+                    onDoubleClicked: playbackController.playFile(model.filePath)
                 }
 
                 Row {
