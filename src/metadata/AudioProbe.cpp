@@ -150,6 +150,11 @@ AudioInspectionResult AudioProbe::probeFile(const std::string& filePath) {
     }
 
     QProcess probeProc;
+#if defined(Q_OS_WIN)
+    probeProc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
+        args->flags |= 0x08000000; // CREATE_NO_WINDOW
+    });
+#endif
     probeProc.start(ffprobeCmd, QStringList{
         "-v", "quiet",
         "-print_format", "json",

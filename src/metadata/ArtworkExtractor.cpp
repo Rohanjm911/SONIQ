@@ -204,6 +204,11 @@ bool ArtworkExtractor::extractViaFfmpeg(const std::string& audioPath, const std:
     }
 
     QProcess proc;
+#if defined(Q_OS_WIN)
+    proc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
+        args->flags |= 0x08000000; // CREATE_NO_WINDOW
+    });
+#endif
     proc.start(ffmpegExe, QStringList{
         "-v", "quiet",
         "-y",

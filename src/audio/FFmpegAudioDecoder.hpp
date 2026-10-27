@@ -48,6 +48,7 @@ private:
 
     // FFmpeg streaming pipe
     FILE* m_pipeHandle{nullptr};
+    void* m_processHandle{nullptr};
 };
 
 } // namespace soniq::audio

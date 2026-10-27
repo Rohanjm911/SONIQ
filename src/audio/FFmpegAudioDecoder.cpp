@@ -4,7 +4,17 @@
 #include <format>
 #include <algorithm>
 #include <cmath>
+#include <vector>
 #include <QString>
+
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 namespace soniq::audio {
 
@@ -15,14 +25,27 @@ FFmpegAudioDecoder::~FFmpegAudioDecoder() {
 }
 
 void FFmpegAudioDecoder::closePipe() {
-    if (m_pipeHandle) {
 #if defined(_WIN32)
-        _pclose(m_pipeHandle);
-#else
-        pclose(m_pipeHandle);
-#endif
+    if (m_pipeHandle) {
+        fclose(m_pipeHandle);
         m_pipeHandle = nullptr;
     }
+    if (m_processHandle) {
+        HANDLE hProcess = reinterpret_cast<HANDLE>(m_processHandle);
+        DWORD exitCode = 0;
+        if (GetExitCodeProcess(hProcess, &exitCode) && exitCode == STILL_ACTIVE) {
+            TerminateProcess(hProcess, 0);
+            WaitForSingleObject(hProcess, 500);
+        }
+        CloseHandle(hProcess);
+        m_processHandle = nullptr;
+    }
+#else
+    if (m_pipeHandle) {
+        pclose(m_pipeHandle);
+        m_pipeHandle = nullptr;
+    }
+#endif
 }
 
 void FFmpegAudioDecoder::close() {
@@ -132,16 +155,77 @@ bool FFmpegAudioDecoder::openFfmpegPipe(const std::string& filePath, double star
     std::string seekArg = (startSeconds > 0.001) ? std::format("-ss {:.3f} ", startSeconds) : "";
 
 #if defined(_WIN32)
-    // On Windows, cmd.exe /c automatically strips the first and last quote if the command begins and ends with quotes.
-    // Wrapping the entire command in an additional pair of outer quotes ensures cmd.exe strips the wrapper quotes,
-    // leaving both the ffmpeg executable path and the file path properly quoted.
-    // _wpopen ensures Unicode file paths are handled properly without ANSI code-page loss.
     std::wstring wExe = QString::fromStdString(ffmpegExe).toStdWString();
     std::wstring wSeek = QString::fromStdString(seekArg).toStdWString();
     std::wstring wPath = QString::fromStdString(filePath).toStdWString();
 
-    std::wstring cmd = L"\"\"" + wExe + L"\" -v quiet -hide_banner " + wSeek + L"-i \"" + wPath + L"\" -f f32le pipe:1\"";
-    m_pipeHandle = _wpopen(cmd.c_str(), L"rb");
+    std::wstring cmdLine = L"\"" + wExe + L"\" -v quiet -hide_banner " + wSeek + L"-i \"" + wPath + L"\" -f f32le pipe:1";
+
+    SECURITY_ATTRIBUTES sa;
+    ZeroMemory(&sa, sizeof(sa));
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.bInheritHandle = TRUE;
+    sa.lpSecurityDescriptor = NULL;
+
+    HANDLE hReadPipe = NULL;
+    HANDLE hWritePipe = NULL;
+    if (!CreatePipe(&hReadPipe, &hWritePipe, &sa, 0)) {
+        SONIQ_LOG_ERROR("CreatePipe failed for FFmpeg decoder: error {}", GetLastError());
+        return false;
+    }
+
+    SetHandleInformation(hReadPipe, HANDLE_FLAG_INHERIT, 0);
+
+    STARTUPINFOW si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.hStdOutput = hWritePipe;
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    si.dwFlags |= STARTF_USESTDHANDLES;
+
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&pi, sizeof(pi));
+
+    std::vector<wchar_t> cmdBuffer(cmdLine.begin(), cmdLine.end());
+    cmdBuffer.push_back(L'\0');
+
+    BOOL success = CreateProcessW(
+        NULL,
+        cmdBuffer.data(),
+        NULL,
+        NULL,
+        TRUE,
+        CREATE_NO_WINDOW,
+        NULL,
+        NULL,
+        &si,
+        &pi
+    );
+
+    CloseHandle(hWritePipe);
+
+    if (!success) {
+        SONIQ_LOG_ERROR("CreateProcessW failed for FFmpeg: error {}", GetLastError());
+        CloseHandle(hReadPipe);
+        return false;
+    }
+
+    CloseHandle(pi.hThread);
+    m_processHandle = pi.hProcess;
+
+    int fd = _open_osfhandle(reinterpret_cast<intptr_t>(hReadPipe), _O_RDONLY | _O_BINARY);
+    if (fd == -1) {
+        SONIQ_LOG_ERROR("_open_osfhandle failed for FFmpeg read pipe");
+        CloseHandle(hReadPipe);
+        return false;
+    }
+
+    m_pipeHandle = _fdopen(fd, "rb");
+    if (!m_pipeHandle) {
+        SONIQ_LOG_ERROR("_fdopen failed for FFmpeg read pipe");
+        _close(fd);
+        return false;
+    }
 #else
     // Force decode into raw 32-bit float IEEE little-endian PCM on stdout pipe
     std::string cmd = std::format("\"{}\" -v quiet -hide_banner {} -i \"{}\" -f f32le pipe:1",
