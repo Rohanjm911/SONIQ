@@ -4,5 +4,6 @@ dist/
 *.db
 *.log
 *.exe
+*.zip
 .DS_Store
 Thumbs.db
