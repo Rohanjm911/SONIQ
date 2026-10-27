@@ -45,7 +45,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int nCmdShow) {
         FALSE,
         0,
         NULL,
-        dir.c_str(),
+        distDir.c_str(),
         &si,
         &pi)) {
         CloseHandle(pi.hThread);

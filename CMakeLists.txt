@@ -93,6 +93,10 @@ target_link_libraries(soniq_app PRIVATE
     Qt6::Sql
 )
 
+if(WIN32)
+    target_link_options(soniq_app PRIVATE -static-libstdc++ -static-libgcc)
+endif()
+
 # Automated Test Suite
 enable_testing()
 
