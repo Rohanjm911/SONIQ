@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ui/main.qml</file>
+        <file>ui/themes/Colors.qml</file>
+        <file>ui/themes/Typography.qml</file>
+        <file>ui/themes/Motion.qml</file>
+        <file>ui/themes/Theme.qml</file>
+        <file>ui/themes/qmldir</file>
+        <file>ui/components/SoniqButton.qml</file>
+        <file>ui/components/SoniqIconButton.qml</file>
+        <file>ui/components/SoniqSlider.qml</file>
+        <file>ui/components/SoniqCard.qml</file>
+        <file>ui/components/SoniqBadge.qml</file>
+        <file>ui/components/SoniqTrackRow.qml</file>
+        <file>ui/components/SoniqSpectrum.qml</file>
+        <file>ui/panels/NavigationSidebar.qml</file>
+        <file>ui/panels/MiniPlayer.qml</file>
+        <file>ui/panels/QueueDrawer.qml</file>
+        <file>ui/screens/HomeScreen.qml</file>
+        <file>ui/screens/SongsScreen.qml</file>
+        <file>ui/screens/NowPlayingScreen.qml</file>
+        <file>ui/screens/EqualizerScreen.qml</file>
+        <file>ui/screens/AudioInspectorScreen.qml</file>
+        <file>ui/screens/SettingsScreen.qml</file>
+    </qresource>
+</RCC>
