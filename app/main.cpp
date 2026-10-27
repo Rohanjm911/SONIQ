@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QQuickWindow>
 #include <QScreen>
+#include <QStandardPaths>
 
 #include "core/Logger.hpp"
 #include "database/DatabaseManager.hpp"
@@ -28,7 +29,10 @@ int main(int argc, char* argv[]) {
 
     QQuickStyle::setStyle("Basic");
 
-    // 2. Initialize Structured Logger
+    // 2. Initialize Structured Logger with file persistence
+    QString appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(appData);
+    soniq::core::Logger::instance().setLogFile((appData + "/soniq.log").toStdString());
     soniq::core::Logger::instance().setLevel(soniq::core::LogLevel::Debug);
     SONIQ_LOG_INFO("==================================================");
     SONIQ_LOG_INFO("Starting SONIQ v1.0.0 — Pure Sound. Infinite Possibilities.");
@@ -79,6 +83,8 @@ int main(int argc, char* argv[]) {
 
     qmlEngine.addImportPath("qrc:/");
     qmlEngine.addImportPath("qrc:/ui");
+    qmlEngine.addImportPath(app.applicationDirPath() + "/qml");
+    qmlEngine.addImportPath(app.applicationDirPath());
 
     // Primary: Load from compiled QRC resources
     qmlEngine.load(url);
