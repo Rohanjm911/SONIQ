@@ -1,5 +1,9 @@
 <div align="center">
-  <img src="ui/assets/logo_full.png" alt="SONIQ Logo" width="420" />
+  <img src="SONIQ.gif" alt="SONIQ Animated Visualizer" width="280" />
+
+  <br />
+
+  <img src="ui/assets/logo_full.png" alt="SONIQ Logo" width="380" />
 
   <br />
 
@@ -23,9 +27,9 @@
 ---
 
 <div align="center">
-  <h3>✨ Animated Splash Screen Experience</h3>
-  <p><i>Cinematic high-frame startup animation with smooth 6-second fade-out transition</i></p>
-  <img src="ui/assets/splash.gif" alt="SONIQ Splash Animation" width="480" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(250, 45, 72, 0.25);" />
+  <h3>✨ Live Application & Splash Screen Showcase</h3>
+  <p><i>Cinematic high-frame startup animation with smooth 6-second fade-out transition into the player</i></p>
+  <img src="SONIQ.gif" alt="SONIQ Animated Demo" width="520" />
 </div>
 
 ---
