@@ -216,5 +216,10 @@ ApplicationWindow {
         AddToPlaylistDialog {
             id: addToPlaylistDialog
         }
+
+        // Animated GIF Splash Screen
+        SplashOverlay {
+            id: splashOverlay
+        }
     }
 }
