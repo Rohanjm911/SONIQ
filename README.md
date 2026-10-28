@@ -3,16 +3,29 @@
 
   <br />
 
-  # SONIQ
-  ### *Pure Sound. Infinite Possibilities.*
+  <a href="https://git.io/typing-svg">
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=16&duration=2500&pause=1000&color=FA2D48&center=true&vCenter=true&width=520&lines=Pure+Sound.+Infinite+Possibilities.;Bit-Perfect+Hardware+WASAPI+Playback;Native+DSD+%2F+DoP+Streaming+%26+FIR+Decimation;Studio+DSP+Pipeline+%26+10-Band+Equalizer;Zero+Telemetry.+Offline-First.+Open+Source." alt="SONIQ Typing Tagline" />
+  </a>
 
-  **Offline-First, Cross-Platform Audiophile Desktop Music Player**
+  <br />
+
+  <img src="ui/assets/soundwave_animated.svg" alt="Animated Audiophile Soundwave" width="100%" />
+
+  <br />
 
   [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
   [![Qt 6](https://img.shields.io/badge/Qt-6.8-41CD52?logo=qt&logoColor=white)](https://www.qt.io/)
   [![WASAPI](https://img.shields.io/badge/Audio-WASAPI%20Bit--Perfect-0078D4?logo=windows&logoColor=white)]()
   [![DSD / DoP](https://img.shields.io/badge/Hi--Res-Native%20DSD%20%2F%20DoP-FF6F00)]()
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+</div>
+
+---
+
+<div align="center">
+  <h3>✨ Animated Splash Screen Experience</h3>
+  <p><i>Cinematic high-frame startup animation with smooth 6-second fade-out transition</i></p>
+  <img src="ui/assets/splash.gif" alt="SONIQ Splash Animation" width="480" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(250, 45, 72, 0.25);" />
 </div>
 
 ---

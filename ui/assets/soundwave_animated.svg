@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 60" width="100%" height="60" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="eqGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FA2D48" />
+      <stop offset="35%" stop-color="#FF5370" />
+      <stop offset="65%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .bar {
+      fill: url(#eqGrad);
+      transform-origin: bottom;
+      filter: url(#glow);
+      rx: 2.5px;
+    }
+    @keyframes pulseA {
+      0%, 100% { transform: scaleY(0.2); }
+      50% { transform: scaleY(0.95); }
+    }
+    @keyframes pulseB {
+      0%, 100% { transform: scaleY(0.85); }
+      50% { transform: scaleY(0.25); }
+    }
+    @keyframes pulseC {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(0.98); }
+    }
+    @keyframes pulseD {
+      0%, 100% { transform: scaleY(0.92); }
+      50% { transform: scaleY(0.15); }
+    }
+    @keyframes pulseE {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(0.8); }
+    }
+
+    .b1 { animation: pulseA 1.2s ease-in-out infinite alternate; }
+    .b2 { animation: pulseB 1.5s ease-in-out infinite alternate; }
+    .b3 { animation: pulseC 1.1s ease-in-out infinite alternate; }
+    .b4 { animation: pulseD 1.6s ease-in-out infinite alternate; }
+    .b5 { animation: pulseE 1.3s ease-in-out infinite alternate; }
+    .b6 { animation: pulseA 1.7s ease-in-out infinite alternate 0.2s; }
+    .b7 { animation: pulseB 1.4s ease-in-out infinite alternate 0.3s; }
+    .b8 { animation: pulseC 1.8s ease-in-out infinite alternate 0.1s; }
+    .b9 { animation: pulseD 1.2s ease-in-out infinite alternate 0.4s; }
+    .b10 { animation: pulseE 1.5s ease-in-out infinite alternate 0.2s; }
+  </style>
+
+  <g transform="translate(0, 56) scale(1, -1)">
+    <!-- 40 Responsive animated bars -->
+    <rect class="bar b1" x="10" y="0" width="5" height="48" />
+    <rect class="bar b2" x="25" y="0" width="5" height="48" />
+    <rect class="bar b3" x="40" y="0" width="5" height="48" />
+    <rect class="bar b4" x="55" y="0" width="5" height="48" />
+    <rect class="bar b5" x="70" y="0" width="5" height="48" />
+    <rect class="bar b6" x="85" y="0" width="5" height="48" />
+    <rect class="bar b7" x="100" y="0" width="5" height="48" />
+    <rect class="bar b8" x="115" y="0" width="5" height="48" />
+    <rect class="bar b9" x="130" y="0" width="5" height="48" />
+    <rect class="bar b10" x="145" y="0" width="5" height="48" />
+
+    <rect class="bar b3" x="160" y="0" width="5" height="48" />
+    <rect class="bar b1" x="175" y="0" width="5" height="48" />
+    <rect class="bar b5" x="190" y="0" width="5" height="48" />
+    <rect class="bar b2" x="205" y="0" width="5" height="48" />
+    <rect class="bar b4" x="220" y="0" width="5" height="48" />
+    <rect class="bar b8" x="235" y="0" width="5" height="48" />
+    <rect class="bar b6" x="250" y="0" width="5" height="48" />
+    <rect class="bar b9" x="265" y="0" width="5" height="48" />
+    <rect class="bar b7" x="280" y="0" width="5" height="48" />
+    <rect class="bar b10" x="295" y="0" width="5" height="48" />
+
+    <rect class="bar b2" x="310" y="0" width="5" height="48" />
+    <rect class="bar b4" x="325" y="0" width="5" height="48" />
+    <rect class="bar b1" x="340" y="0" width="5" height="48" />
+    <rect class="bar b5" x="355" y="0" width="5" height="48" />
+    <rect class="bar b3" x="370" y="0" width="5" height="48" />
+    <rect class="bar b8" x="385" y="0" width="5" height="48" />
+    <rect class="bar b10" x="400" y="0" width="5" height="48" />
+    <rect class="bar b6" x="415" y="0" width="5" height="48" />
+    <rect class="bar b9" x="430" y="0" width="5" height="48" />
+    <rect class="bar b7" x="445" y="0" width="5" height="48" />
+
+    <rect class="bar b4" x="460" y="0" width="5" height="48" />
+    <rect class="bar b2" x="475" y="0" width="5" height="48" />
+    <rect class="bar b5" x="490" y="0" width="5" height="48" />
+    <rect class="bar b1" x="505" y="0" width="5" height="48" />
+    <rect class="bar b3" x="520" y="0" width="5" height="48" />
+    <rect class="bar b7" x="535" y="0" width="5" height="48" />
+    <rect class="bar b9" x="550" y="0" width="5" height="48" />
+    <rect class="bar b6" x="565" y="0" width="5" height="48" />
+    <rect class="bar b10" x="580" y="0" width="5" height="48" />
+    <rect class="bar b8" x="595" y="0" width="5" height="48" />
+
+    <rect class="bar b1" x="610" y="0" width="5" height="48" />
+    <rect class="bar b3" x="625" y="0" width="5" height="48" />
+    <rect class="bar b2" x="640" y="0" width="5" height="48" />
+    <rect class="bar b5" x="655" y="0" width="5" height="48" />
+    <rect class="bar b4" x="670" y="0" width="5" height="48" />
+    <rect class="bar b8" x="685" y="0" width="5" height="48" />
+    <rect class="bar b6" x="700" y="0" width="5" height="48" />
+    <rect class="bar b10" x="715" y="0" width="5" height="48" />
+    <rect class="bar b7" x="730" y="0" width="5" height="48" />
+    <rect class="bar b9" x="745" y="0" width="5" height="48" />
+    <rect class="bar b2" x="760" y="0" width="5" height="48" />
+    <rect class="bar b4" x="775" y="0" width="5" height="48" />
+    <rect class="bar b1" x="790" y="0" width="5" height="48" />
+  </g>
+</svg>
