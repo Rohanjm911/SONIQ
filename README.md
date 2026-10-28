@@ -1,9 +1,5 @@
 <div align="center">
-  <img src="SONIQ.gif" alt="SONIQ Animated Visualizer" width="280" />
-
-  <br />
-
-  <img src="ui/assets/logo_full.png" alt="SONIQ Logo" width="380" />
+  <img src="ui/assets/logo_full.png" alt="SONIQ Logo" width="420" />
 
   <br />
 
@@ -22,14 +18,6 @@
   [![WASAPI](https://img.shields.io/badge/Audio-WASAPI%20Bit--Perfect-0078D4?logo=windows&logoColor=white)]()
   [![DSD / DoP](https://img.shields.io/badge/Hi--Res-Native%20DSD%20%2F%20DoP-FF6F00)]()
   [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-</div>
-
----
-
-<div align="center">
-  <h3>✨ Live Application & Splash Screen Showcase</h3>
-  <p><i>Cinematic high-frame startup animation with smooth 6-second fade-out transition into the player</i></p>
-  <img src="SONIQ.gif" alt="SONIQ Animated Demo" width="520" />
 </div>
 
 ---
