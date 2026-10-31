@@ -56,7 +56,16 @@ A lossless file does not guarantee bit-perfect reproduction if software volume, 
 - **Available**: Hardware supports the stream format natively, but shared-mode or attenuation is active.
 - **Unavailable**: Active DSP (e.g., EQ gain != 0, Crossfeed on, Limiter active) or software volume < 100% is modifying sample values. Reasons are enumerated and reported to the user in the UI.
 
-### 3. Local Persistence & Scanning
+### 3. Local Persistence & Aggregations
 - Implemented with SQLite using versioned migrations (`schema_version`).
 - Tracks, playlists, playback statistics, and user preferences are indexed locally.
-- Library scanner iterates folders recursively on a background thread with zero UI lag.
+- High-performance distinct group-by aggregations (`AlbumSummary`, `ArtistSummary`, `GenreSummary`) allow instant client-side filtering without heavy table scans.
+- Library scanner iterates folders recursively on a background worker thread with zero UI lag and updates the library model via thread-safe signals.
+
+### 4. Real-Time Telemetry & Synchronized Lyrics Engine
+- **Visualizer Telemetry Hook**: Exposes a real-time 128-sample normalized waveform array (`PlaybackController::waveform()`) and Left/Right peak amplitudes to QML via Q_PROPERTY without blocking the audio callback.
+- **Synchronized Lyrics Parser**: Dynamically locates adjacent `.lrc` and `.txt` files matching the playing track or folder stem, parses millisecond timestamps (`[mm:ss.xx]`), and emits time-synced line indices for smooth auto-scrolling lyrics presentation.
+
+### 5. UI Architecture & Responsive Geometry
+- Replaces standard Qt Quick `ScrollView` with explicit `Flickable` viewports to avoid circular geometry binding loops on high-DPI displays.
+- Strict proportional anchoring and bounded text eliding ensure zero column squishing or text collision across arbitrary window sizes.

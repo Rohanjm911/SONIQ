@@ -80,25 +80,27 @@
 
 ## 3. Studio-Grade 64-Bit DSP & Equalizer Pipeline
 
-* **10-Band Graphic Equalizer (ISO Standard Octave Bands):**
-  * ISO center frequencies: `31 Hz`, `62 Hz`, `125 Hz`, `250 Hz`, `500 Hz`, `1 kHz`, `2 kHz`, `4 kHz`, `8 kHz`, and `16 kHz`.
-  * Continuous per-band gain adjustment from `-12.0 dB` to `+12.0 dB` with fine granularity.
-  * Real-time interactive response curve visualization dynamically rendered using responsive cubic Bezier curves in QML.
-* **31-Band 1/3-Octave Graphic Equalizer:**
+* **Console-Grade 10-Band Graphic Equalizer (ISO Octave Bands):**
+  * ISO center frequencies: `31 Hz`, `63 Hz`, `125 Hz`, `250 Hz`, `500 Hz`, `1 kHz`, `2 kHz`, `4 kHz`, `8 kHz`, and `16 kHz`.
+  * Continuous per-band gain adjustment from `-12.0 dB` to `+12.0 dB` with real-time numeric badges displaying active dB offsets (`+6.0 dB`, `0.0 dB`, `-3.5 dB`).
+  * Professional tactile hardware fader handles with center 0 dB reference ticks and dynamic accent fill levels.
+  * Live mathematical frequency response curve ($20\text{ Hz} - 20,000\text{ Hz}$) logarithmic sampling with dB reference gridlines (`-12`, `-6`, `0`, `+6`, `+12 dB`) and smooth accent gradient fill. Flat neutral line when bypassed.
+* **Master Preamp Gain Staging:**
+  * Clean digital gain slider (`-12.0 dB` to `+12.0 dB`) to calibrate digital headroom and avoid inter-band digital clipping when applying positive EQ gains.
+* **31-Band 1/3-Octave Graphic Equalizer & Parametric EQ:**
   * Surgical acoustic frequency correction for room acoustics and headphone equalization profiles.
-* **Parametric Equalizer:**
   * Second-order biquad filter topologies: Peaking, Low Shelf, High Shelf, High Pass, Low Pass, and Notch with arbitrary Q factor.
 * **Acoustic Presets:**
   * Curated built-in presets: *Flat*, *Bass Boost*, *Treble Boost*, *Vocal Clarity*, *Electronic*, *Classical*, *Rock*, *Acoustic*, and *Audiophile Reference*.
-  * Instant preset switching with animated slider transitions.
+  * Instant preset switching with animated slider transitions and quick "Reset EQ" button.
 * **Bauer Stereophonic-to-Binaural Crossfeed (BS2B):**
-  * Frequency-shaped spatial crossfeed between left and right stereo channels.
+  * Frequency-shaped spatial crossfeed between left and right stereo channels (700 Hz cutoff, -4.5 dB feed).
   * Eliminates extreme left/right headphone isolation fatigue and recreates natural loudspeaker spatial imaging.
-* **True-Peak Limiter & Anti-Clipping:**
+* **True-Peak Limiter & Transparent Anti-Clipping:**
   * Lookahead peak limiter prevents digital inter-sample clipping while preserving full acoustic dynamic range.
 * **Bit-Perfect Integrity Audit:**
   * Real-time engine telemetry that audits whether the output stream remains bit-perfect or is mathematically altered by volume, DSP, or resampling.
-  * Shows exact status badges in UI: **BIT-PERFECT DIRECT** or **DSP ACTIVE (MODIFIED)** with detailed explanations.
+  * High-visibility banner explaining why bit-perfect output is bypassed when DSP is active.
 
 ---
 
@@ -205,6 +207,8 @@ SONIQ supports virtually all uncompressed, lossless, DSD, and lossy audio contai
     * **Bit Depth**: 16-bit, 24-bit, 32-bit float, or 1-bit DSD.
     * **Channel Configuration**: Stereo 2.0, Mono 1.0, 5.1 Surround.
     * **Bitrate & Compression Ratio**: Exact kbps calculations.
+  * **Proportional 3-Column Anchor Architecture**: 2-row layout with strictly anchored left, center, and right columns and `elide: Text.ElideRight` constraints, ensuring zero overlapping text or column squishing under any window dimensions.
+  * **Now Playing Real-Time Stream Telemetry**: Dedicated side-by-side anchored layout separating stream specifications (Format, Output Sink, DSP Status) from hardware status (Bit-Perfect status, Gapless engine state, File path) with a guaranteed 24px gutter and text eliding.
 * **Live Bit-Perfect Verification Badge:**
   * High-visibility status indicator showing cyan **VERIFIED BIT-PERFECT** when audio samples reach the DAC with zero alteration, or warning badge with active modification reasons (EQ enabled, volume attenuation, crossfeed active).
 
@@ -215,6 +219,8 @@ SONIQ supports virtually all uncompressed, lossless, DSD, and lossy audio contai
 * **Unified Modern Design System:**
   * Comprehensive design token architecture in `Colors.qml`, `Typography.qml`, `Motion.qml`, and `Theme.qml`.
   * Fluid 60 FPS transitions and ease-in-out animations for all drawers, sliders, and views.
+  * **Robust Non-Collapsing `Flickable` Containers**: Replaces standard Qt Quick `ScrollView` across all screens, preventing circular geometry binding loops and ensuring fluid, responsive scrolling on high-DPI and scaled displays.
+  * **Canvas-Rendered Vector Icon System (`SoniqIcon`)**: Resolution-independent vector glyphs drawn via HTML5-style Canvas 2D contexts, eliminating missing font glyphs or platform-dependent emoji styling.
 * **Dynamic Accent Color Picker:**
   * Choose between 5 curated audiophile accent themes in Settings:
     * 🔴 **Apple Crimson** (`#FA2D48`)
@@ -223,7 +229,7 @@ SONIQ supports virtually all uncompressed, lossless, DSD, and lossy audio contai
     * 🟡 **Amber Gold** (`#F59E0B`)
     * 🟣 **Royal Purple** (`#8B5CF6`)
 * **Dark & Light Mode Switching:**
-  * Supports seamless switching between deep OLED dark mode (`#0A0B0E`) and clean daylight mode (`#F8F9FA`), persisted in user preferences.
+  * Supports seamless switching between deep OLED dark mode (`#0A0B10`) and clean daylight mode (`#F8F9FA`), persisted in user preferences.
 * **Full-Screen (F11) & Responsive Monitor Clamping:**
   * Adaptive layout scaling that gracefully handles resolutions from 720p/768p up to 4K widescreen.
   * Intelligent monitor work-area geometry calculation centering the window on startup without taskbar overlap.

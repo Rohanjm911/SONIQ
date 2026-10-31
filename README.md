@@ -35,26 +35,28 @@ SONIQ is a modern, offline-first, cross-platform audiophile desktop music player
 - **Universal Audio Decoding**: Direct low-latency PCM RIFF/WAV decoding, DSD/DSF/DFF engine, and universal FFmpeg audio streaming (FLAC, ALAC, WAV, AIFF, MP3, AAC, OGG Vorbis, Opus, WavPack, APE, and more).
 - **Format-Aware Artwork Extraction**: High-speed extraction of embedded album artwork from FLAC picture blocks, MP3 ID3v2 APIC tags, and stream copy to persistent disk cache.
 - **Studio DSP Engine**:
-  - 10-Band Graphic EQ (ISO Standard Octave bands)
-  - 31-Band Graphic EQ (1/3 Octave bands)
-  - Parametric EQ (Peaking, Low Shelf, High Shelf, High Pass, Low Pass, Notch)
-  - Master Preamp Gain (-24 dB to +24 dB)
+  - Console-grade 10-Band Graphic Equalizer with tactile hardware fader handles, dynamic accent fill, and real-time numeric dB badges (+6.0 dB, 0.0 dB, -3.5 dB)
+  - Live Mathematical Frequency Response Curve ($20\text{ Hz} - 20,000\text{ Hz}$) logarithmic sampling with dB reference gridlines (-12, -6, 0, +6, +12 dB) and smooth gradient fill
+  - 31-Band Graphic EQ (1/3 Octave bands) & Parametric EQ topologies (Peaking, Low Shelf, High Shelf, High Pass, Low Pass, Notch)
+  - Master Preamp Gain (-12 dB to +12 dB) for digital headroom gain-staging
   - Bauer Stereophonic-to-Binaural Crossfeed (headphone acoustic fatigue reduction)
-  - Lookahead Peak Limiter & Transparent Anti-Clipping
-  - Bit-Perfect Integrity Audit (identifies and explains any active DSP modifying raw samples)
+  - True-Peak Limiter & Transparent Anti-Clipping prevention
+  - Bit-Perfect Integrity Audit (actively explains which DSP filter or attenuation bypasses bit-perfect output)
 - **Offline-First & Privacy Conscious**:
   - Zero mandatory accounts or online telemetry
-  - Local SQLite database with versioned schema migrations (v1 and v2)
+  - Local SQLite database with versioned schema migrations (v1 and v2) and WAL mode
+  - High-performance distinct aggregations for Albums, Artists, and Genres with instant client-side filtering
   - Asynchronous recursive library scanner
-  - Full playlist management and instant search
+  - Full playlist management, tag editor, and instant search
 - **Design System & Presentation**:
   - Centralized design tokens (`Colors.qml`, `Typography.qml`, `Motion.qml`, `Theme.qml`) supporting Dark mode, Light mode, and curated Apple Music-style tint palettes
-  - Vector icon system rendering crisp Canvas geometry without fuzzy emoji or missing glyphs
+  - Vector icon system rendering crisp Canvas geometry (`SoniqIcon`) without fuzzy emoji or missing glyphs
   - Four library views: Songs Table list, Album Artwork Grid, Artist Cards, and Genre Pills
-  - Centerpiece Now Playing experience featuring album artwork, Apple Music-style synchronized lyrics with smooth auto-scroll, real audio visualizers (Spectrum Bars, Oscilloscope Waveform, Circular Radar), and hardware stream specs
+  - Centerpiece Now Playing experience featuring large album artwork, Apple Music-style synchronized `.lrc` lyrics with smooth auto-scroll, real audio visualizers (Spectrum Bars, Oscilloscope Waveform, Circular Radar), and hardware stream specs
   - Persistent interactive Mini-Player with scrubbing timeline, album artwork, and real-time spectrum visualizer
-  - Slide-in Playing Queue drawer directly synchronized with the C++ playback engine with reorder, remove, and clear capabilities
-  - Technical Audio File Inspector showing container, codec, sample rate, bit depth, channel configuration, and bit-perfect eligibility audit
+  - Slide-in Playing Queue drawer directly synchronized with the C++ playback engine with drag-free reorder, remove, and clear capabilities
+  - Technical Audio File Inspector showing container, codec, sample rate, bit depth, channel configuration, and bit-perfect eligibility audit in a proportional non-overlapping grid
+  - Robust non-collapsing `Flickable` layout architecture across all screens ensuring zero layout squishing, text collisions, or binding loops on any resolution or high-DPI scaling
   - Clean iOS Settings-inspired configuration interface with grouped rounded insets, accessibility motion toggle, and keyboard shortcuts cheat-sheet
 
 ---

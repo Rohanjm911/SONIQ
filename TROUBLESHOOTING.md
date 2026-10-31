@@ -35,3 +35,12 @@
 ### Issue: FFmpeg pipe spawn failure
 - **Cause**: `ffmpeg.exe` is not found on PATH or in `C:\ffmpeg`.
 - **Solution**: Ensure FFmpeg is installed and accessible via PATH, or download static FFmpeg binaries to `C:\ffmpeg`. Uncompressed WAV and PCM files continue to play directly via the built-in direct PCM engine.
+
+---
+
+## 4. Display Scaling & UI Layout
+
+### High-DPI Displays (125%, 150%, 200% Windows Scaling)
+- **Design Architecture**: SONIQ employs responsive, bounded `Flickable` containers and Canvas-based vector geometry (`SoniqIcon`). All typography, control heights, faders, and spacing metrics scale proportionally without pixelation, clipping, or binding loops.
+- **Fullscreen Mode**: Press **F11** at any time to toggle borderless immersive fullscreen listening mode, or press **Escape** to exit.
+- **Window Minimum Dimensions**: The interface is optimized to gracefully adapt to window sizes down to $1024 \times 600$ and scale smoothly up to ultrawide 4K and 8K monitors.
