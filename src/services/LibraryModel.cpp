@@ -210,6 +210,20 @@ void LibraryModel::refresh() {
     beginResetModel();
     if (m_activePlaylistId > 0) {
         m_tracks = db::DatabaseManager::instance().getPlaylistTracks(m_activePlaylistId);
+    } else if (m_activeFilterType == "album") {
+        m_tracks = db::DatabaseManager::instance().getTracksByAlbum(m_activeFilterValue.toStdString());
+    } else if (m_activeFilterType == "artist") {
+        m_tracks = db::DatabaseManager::instance().getTracksByArtist(m_activeFilterValue.toStdString());
+    } else if (m_activeFilterType == "genre") {
+        m_tracks = db::DatabaseManager::instance().getTracksByGenre(m_activeFilterValue.toStdString());
+    } else if (m_activeFilterType == "favorites") {
+        m_tracks = db::DatabaseManager::instance().getFavoriteTracks();
+    } else if (m_activeFilterType == "recent_played") {
+        m_tracks = db::DatabaseManager::instance().getRecentlyPlayedTracks(50);
+    } else if (m_activeFilterType == "recent_added") {
+        m_tracks = db::DatabaseManager::instance().getRecentlyAddedTracks(50);
+    } else if (m_activeFilterType == "most_played") {
+        m_tracks = db::DatabaseManager::instance().getMostPlayedTracks(50);
     } else {
         m_tracks = db::DatabaseManager::instance().getAllTracks("title ASC");
     }
@@ -221,6 +235,10 @@ void LibraryModel::refresh() {
 
 void LibraryModel::search(const QString& query) {
     m_lastSearchQuery = query;
+    m_activeFilterType.clear();
+    m_activeFilterValue.clear();
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
     beginResetModel();
     if (query.trimmed().isEmpty()) {
         m_tracks = db::DatabaseManager::instance().getAllTracks("title ASC");
@@ -230,34 +248,88 @@ void LibraryModel::search(const QString& query) {
     applyCurrentSort();
     endResetModel();
     emit countChanged();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
 }
 
 void LibraryModel::filterFavorites() {
-    beginResetModel();
-    m_tracks = db::DatabaseManager::instance().getFavoriteTracks();
-    applyCurrentSort();
-    endResetModel();
-    emit countChanged();
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "favorites";
+    m_activeFilterValue = "Favorites";
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
 }
 
 void LibraryModel::filterRecentlyPlayed() {
-    beginResetModel();
-    m_tracks = db::DatabaseManager::instance().getRecentlyPlayedTracks(50);
-    if (m_sortField != "date_added" && m_sortField != "title") {
-        applyCurrentSort();
-    }
-    endResetModel();
-    emit countChanged();
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "recent_played";
+    m_activeFilterValue = "Recently Played";
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
 }
 
 void LibraryModel::filterRecentlyAdded() {
-    beginResetModel();
-    m_tracks = db::DatabaseManager::instance().getRecentlyAddedTracks(50);
-    if (m_sortField != "date_added" && m_sortField != "title") {
-        applyCurrentSort();
-    }
-    endResetModel();
-    emit countChanged();
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "recent_added";
+    m_activeFilterValue = "Recently Added";
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
+}
+
+void LibraryModel::filterMostPlayed() {
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "most_played";
+    m_activeFilterValue = "Frequently Played";
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
+}
+
+void LibraryModel::filterByAlbum(const QString& album) {
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "album";
+    m_activeFilterValue = album;
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
+}
+
+void LibraryModel::filterByArtist(const QString& artist) {
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "artist";
+    m_activeFilterValue = artist;
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
+}
+
+void LibraryModel::filterByGenre(const QString& genre) {
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType = "genre";
+    m_activeFilterValue = genre;
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
+}
+
+void LibraryModel::clearFilter() {
+    m_activePlaylistId = -1;
+    m_activePlaylistName.clear();
+    m_activeFilterType.clear();
+    m_activeFilterValue.clear();
+    refresh();
+    emit activePlaylistChanged();
+    emit activeFilterChanged();
 }
 
 void LibraryModel::sortBy(const QString& field) {
@@ -425,12 +497,50 @@ void LibraryModel::filterByPlaylist(qint64 playlistId, const QString& playlistNa
 }
 
 void LibraryModel::clearPlaylistFilter() {
-    if (m_activePlaylistId != -1) {
-        m_activePlaylistId = -1;
-        m_activePlaylistName.clear();
-        emit activePlaylistChanged();
-        refresh();
+    clearFilter();
+}
+
+QVariantList LibraryModel::getAlbums() const {
+    auto albums = db::DatabaseManager::instance().getDistinctAlbums();
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(albums.size()));
+    for (const auto& a : albums) {
+        QVariantMap map;
+        map["name"] = QString::fromStdString(a.album);
+        map["artist"] = QString::fromStdString(a.artist);
+        map["trackCount"] = a.trackCount;
+        map["artworkPath"] = QString::fromStdString(a.artworkPath);
+        map["year"] = a.year;
+        list.append(map);
     }
+    return list;
+}
+
+QVariantList LibraryModel::getArtists() const {
+    auto artists = db::DatabaseManager::instance().getDistinctArtists();
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(artists.size()));
+    for (const auto& a : artists) {
+        QVariantMap map;
+        map["name"] = QString::fromStdString(a.artist);
+        map["trackCount"] = a.trackCount;
+        map["albumCount"] = a.albumCount;
+        list.append(map);
+    }
+    return list;
+}
+
+QVariantList LibraryModel::getGenres() const {
+    auto genres = db::DatabaseManager::instance().getDistinctGenres();
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(genres.size()));
+    for (const auto& g : genres) {
+        QVariantMap map;
+        map["name"] = QString::fromStdString(g.genre);
+        map["trackCount"] = g.trackCount;
+        list.append(map);
+    }
+    return list;
 }
 
 bool LibraryModel::updateTrackMetadata(qint64 trackId, const QString& title, const QString& artist,

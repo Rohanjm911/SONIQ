@@ -17,6 +17,7 @@ class SettingsService : public QObject {
     Q_PROPERTY(bool replayGainEnabled READ replayGainEnabled WRITE setReplayGainEnabled NOTIFY settingsChanged)
     Q_PROPERTY(bool crossfadeEnabled READ crossfadeEnabled WRITE setCrossfadeEnabled NOTIFY settingsChanged)
     Q_PROPERTY(double crossfadeSeconds READ crossfadeSeconds WRITE setCrossfadeSeconds NOTIFY settingsChanged)
+    Q_PROPERTY(bool reducedMotion READ reducedMotion WRITE setReducedMotion NOTIFY settingsChanged)
 
 public:
     explicit SettingsService(QObject* parent = nullptr);
@@ -41,6 +42,9 @@ public:
 
     [[nodiscard]] double crossfadeSeconds() const;
     void setCrossfadeSeconds(double sec);
+
+    [[nodiscard]] bool reducedMotion() const;
+    void setReducedMotion(bool enabled);
 
 public slots:
     void resetToDefaults();

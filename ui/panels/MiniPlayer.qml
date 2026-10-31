@@ -22,9 +22,9 @@ Rectangle {
         Row {
             id: leftGroup
             anchors.left: parent.left
-            anchors.leftMargin: 16
+            anchors.leftMargin: Theme.spacingM
             anchors.verticalCenter: parent.verticalCenter
-            width: 260
+            width: Math.min(280, Math.max(180, parent.width * 0.25))
             height: parent.height
             spacing: 12
 
@@ -46,16 +46,33 @@ Rectangle {
                     visible: status === Image.Ready
                 }
 
-                Text {
+                SoniqIcon {
                     anchors.centerIn: parent
-                    text: "\u266B"
-                    font.pixelSize: 22
+                    name: "songs"
+                    size: 22
                     color: Colors.textMuted
                     visible: !playbackController.trackArtworkPath || playbackController.trackArtworkPath.length === 0
                 }
 
-                MouseArea {
+                // Hover overlay with expand hint
+                Rectangle {
                     anchors.fill: parent
+                    color: Qt.rgba(0, 0, 0, 0.4)
+                    opacity: artMouse.containsMouse ? 1.0 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: Motion.durationFast } }
+
+                    SoniqIcon {
+                        anchors.centerIn: parent
+                        name: "fullscreen"
+                        size: 14
+                        color: "#FFFFFF"
+                    }
+                }
+
+                MouseArea {
+                    id: artMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.expandRequested()
                 }
@@ -63,7 +80,7 @@ Rectangle {
 
             Column {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - 60
+                width: parent.width - 64
                 spacing: 2
 
                 Text {
@@ -76,13 +93,24 @@ Rectangle {
                     elide: Text.ElideRight
                 }
 
-                Text {
+                Row {
                     width: parent.width
-                    text: playbackController.trackArtist
-                    font.family: Typography.fontFamily
-                    font.pixelSize: Typography.sizeCaption
-                    color: Colors.textSecondary
-                    elide: Text.ElideRight
+                    spacing: 6
+
+                    Text {
+                        text: playbackController.trackArtist
+                        font.family: Typography.fontFamily
+                        font.pixelSize: Typography.sizeCaption
+                        color: Colors.textSecondary
+                        elide: Text.ElideRight
+                        width: Math.min(implicitWidth, parent.width - 48)
+                    }
+
+                    SoniqBadge {
+                        visible: playbackController.trackFormat.length > 0 && playbackController.trackFormat !== "None"
+                        badgeText: playbackController.trackFormat.slice(0, 4).toUpperCase()
+                        variant: (playbackController.bitPerfectStatus === "Verified") ? "bitperfect" : "standard"
+                    }
                 }
             }
         }
@@ -91,7 +119,7 @@ Rectangle {
         Column {
             id: centerGroup
             anchors.centerIn: parent
-            width: Math.min(680, Math.max(280, parent.width - leftGroup.width - rightGroup.width - 48))
+            width: Math.min(640, Math.max(260, parent.width - leftGroup.width - rightGroup.width - 32))
             spacing: 2
 
             // Transport buttons
@@ -103,7 +131,7 @@ Rectangle {
                     iconSymbol: "shuffle"
                     iconPixelSize: 14
                     isAccent: playbackController.isShuffle
-                    tooltipText: "Shuffle"
+                    tooltipText: playbackController.isShuffle ? "Shuffle On" : "Shuffle Off"
                     onClicked: playbackController.toggleShuffle()
                 }
 
@@ -115,16 +143,16 @@ Rectangle {
                 }
 
                 Rectangle {
-                    width: 36
-                    height: 36
+                    width: 38
+                    height: 38
                     radius: Theme.cornerRadiusPill
                     color: Colors.accent
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
+                    SoniqIcon {
                         anchors.centerIn: parent
-                        text: playbackController.isPlaying ? "\u23F8" : "\u25B6"
-                        font.pixelSize: 14
+                        name: playbackController.isPlaying ? "pause" : "play"
+                        size: 15
                         color: Colors.textInverse
                     }
 
@@ -143,10 +171,10 @@ Rectangle {
                 }
 
                 SoniqIconButton {
-                    iconSymbol: "repeat"
+                    iconSymbol: playbackController.repeatMode === 1 ? "repeat_one" : "repeat"
                     iconPixelSize: 14
                     isAccent: playbackController.repeatMode > 0
-                    tooltipText: playbackController.repeatMode === 1 ? "Repeat Track (Mode 1)" : (playbackController.repeatMode === 2 ? "Repeat All (Mode 2)" : "Repeat Off")
+                    tooltipText: playbackController.repeatMode === 1 ? "Repeat Track" : (playbackController.repeatMode === 2 ? "Repeat All" : "Repeat Off")
                     onClicked: {
                         var nextMode = (playbackController.repeatMode + 1) % 3;
                         playbackController.setRepeatMode(nextMode);
@@ -189,19 +217,19 @@ Rectangle {
             }
         }
 
-        // 3. Right Group: Audio Telemetry, Volume, Queue & Fullscreen Controls
+        // 3. Right Group: Spectrum, Volume, Queue & Window Controls
         Row {
             id: rightGroup
             anchors.right: parent.right
-            anchors.rightMargin: 16
+            anchors.rightMargin: Theme.spacingM
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
 
-            // Real-time Spectrum Visualizer
+            // Mini Audio Spectrum
             SoniqSpectrum {
                 anchors.verticalCenter: parent.verticalCenter
-                width: 60
-                height: 24
+                width: 50
+                height: 22
                 peakL: playbackController.peakLevelL
                 peakR: playbackController.peakLevelR
                 active: playbackController.isPlaying
@@ -218,7 +246,7 @@ Rectangle {
 
             // Volume Slider
             SoniqSlider {
-                width: 80
+                width: 76
                 anchors.verticalCenter: parent.verticalCenter
                 from: 0.0
                 to: 1.0
@@ -226,13 +254,24 @@ Rectangle {
                 onMoved: playbackController.setVolume(value)
             }
 
-            // Queue Drawer Toggle
+            // Queue Toggle Button
             SoniqIconButton {
                 anchors.verticalCenter: parent.verticalCenter
-                iconSymbol: "☰"
-                iconPixelSize: 16
-                tooltipText: "Playback Queue"
+                iconSymbol: "queue"
+                iconPixelSize: 15
+                isAccent: window && window.queueOpen
+                tooltipText: "Playing Queue"
                 onClicked: root.queueToggleRequested()
+            }
+
+            // Expand to Now Playing
+            SoniqIconButton {
+                anchors.verticalCenter: parent.verticalCenter
+                iconSymbol: "lyrics"
+                iconPixelSize: 15
+                isAccent: window && window.activeScreen === "nowplaying"
+                tooltipText: "Now Playing & Lyrics"
+                onClicked: root.expandRequested()
             }
 
             // Fullscreen Toggle Button

@@ -48,10 +48,14 @@ SONIQ is a modern, offline-first, cross-platform audiophile desktop music player
   - Asynchronous recursive library scanner
   - Full playlist management and instant search
 - **Design System & Presentation**:
-  - Unified design tokens for dark and light themes
-  - Persistent mini-player with scrubbing timeline, album artwork, and real-time spectrum visualizer
-  - Centerpiece Now Playing screen and slide-in Playing Queue drawer
+  - Centralized design tokens (`Colors.qml`, `Typography.qml`, `Motion.qml`, `Theme.qml`) supporting Dark mode, Light mode, and curated Apple Music-style tint palettes
+  - Vector icon system rendering crisp Canvas geometry without fuzzy emoji or missing glyphs
+  - Four library views: Songs Table list, Album Artwork Grid, Artist Cards, and Genre Pills
+  - Centerpiece Now Playing experience featuring album artwork, Apple Music-style synchronized lyrics with smooth auto-scroll, real audio visualizers (Spectrum Bars, Oscilloscope Waveform, Circular Radar), and hardware stream specs
+  - Persistent interactive Mini-Player with scrubbing timeline, album artwork, and real-time spectrum visualizer
+  - Slide-in Playing Queue drawer directly synchronized with the C++ playback engine with reorder, remove, and clear capabilities
   - Technical Audio File Inspector showing container, codec, sample rate, bit depth, channel configuration, and bit-perfect eligibility audit
+  - Clean iOS Settings-inspired configuration interface with grouped rounded insets, accessibility motion toggle, and keyboard shortcuts cheat-sheet
 
 ---
 

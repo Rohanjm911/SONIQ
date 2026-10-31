@@ -18,6 +18,8 @@
         <file>ui/components/CreatePlaylistDialog.qml</file>
         <file>ui/components/AddToPlaylistDialog.qml</file>
         <file>ui/components/SplashOverlay.qml</file>
+        <file>ui/components/SoniqToast.qml</file>
+        <file>ui/components/SoniqVisualizer.qml</file>
         <file>ui/components/qmldir</file>
         <file>ui/panels/NavigationSidebar.qml</file>
         <file>ui/panels/MiniPlayer.qml</file>

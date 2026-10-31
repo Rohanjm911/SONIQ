@@ -25,13 +25,14 @@ Rectangle {
     signal editTagsClicked()
     signal addToPlaylistClicked()
     signal removeFromPlaylistClicked()
+    signal toastRequested(string msg)
 
-    implicitHeight: 48
+    implicitHeight: 52
     width: parent ? parent.width : 600
 
     radius: Theme.cornerRadiusSmall
     color: {
-        if (root.isPlaying) return Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.12);
+        if (root.isPlaying) return Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.14);
         if (mouseArea.containsMouse) return Colors.surfaceHover;
         return "transparent";
     }
@@ -68,24 +69,23 @@ Rectangle {
                 visible: !mouseArea.containsMouse && !root.isPlaying
                 anchors.centerIn: parent
                 text: root.trackNumber > 0 ? root.trackNumber.toString() : "-"
-                font.family: Typography.fontFamily
-                font.pixelSize: Typography.sizeBody
+                font.family: Typography.monospaceFamily
+                font.pixelSize: Typography.sizeCaption
                 color: Colors.textMuted
             }
 
-            Text {
+            SoniqIcon {
                 visible: root.isPlaying
                 anchors.centerIn: parent
-                text: "▶"
-                font.family: Typography.fontFamily
-                font.pixelSize: Typography.sizeBody
+                name: "play"
+                size: 14
                 color: Colors.accent
             }
 
             SoniqIconButton {
                 visible: mouseArea.containsMouse && !root.isPlaying
                 anchors.centerIn: parent
-                iconSymbol: "▶"
+                iconSymbol: "play"
                 iconPixelSize: 12
                 onClicked: root.playClicked()
             }
@@ -93,12 +93,11 @@ Rectangle {
 
         // Mini Artwork Thumbnail
         Rectangle {
-            width: 32
-            height: 32
+            width: 36
+            height: 36
             radius: Theme.cornerRadiusSmall
             color: Colors.surfaceElevated
             anchors.verticalCenter: parent.verticalCenter
-            visible: root.artworkPath.length > 0
             clip: true
 
             Image {
@@ -106,12 +105,21 @@ Rectangle {
                 source: root.artworkPath.length > 0 ? ("file:///" + root.artworkPath) : ""
                 fillMode: Image.PreserveAspectCrop
                 smooth: true
+                visible: status === Image.Ready
+            }
+
+            SoniqIcon {
+                anchors.centerIn: parent
+                name: "songs"
+                size: 16
+                color: Colors.textMuted
+                visible: !root.artworkPath || root.artworkPath.length === 0
             }
         }
 
         // Title and Artist Column
         Column {
-            width: parent.width - 28 - (root.artworkPath.length > 0 ? 44 : 0)
+            width: parent.width - 80
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
@@ -120,7 +128,7 @@ Rectangle {
                 text: root.title
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeBody
-                font.weight: Typography.weightMedium
+                font.weight: root.isPlaying ? Typography.weightBold : Typography.weightMedium
                 color: root.isPlaying ? Colors.accent : Colors.textPrimary
                 elide: Text.ElideRight
             }
@@ -152,7 +160,7 @@ Rectangle {
         visible: width > 40
     }
 
-    // 3. Right Group: Format Badge + Favorite + Duration (Pinned to right edge)
+    // 3. Right Group: Format Badge + Favorite + Duration + More Actions
     Row {
         id: rightGroup
         anchors.right: parent.right
@@ -162,14 +170,19 @@ Rectangle {
 
         // Format Badge
         Item {
-            width: 58
+            width: 62
             height: 24
             anchors.verticalCenter: parent.verticalCenter
 
             SoniqBadge {
                 anchors.centerIn: parent
                 badgeText: root.format.toUpperCase()
-                variant: (root.format.toUpperCase() === "FLAC" || root.format.toUpperCase() === "WAV") ? "hires" : "standard"
+                variant: {
+                    var f = root.format.toUpperCase();
+                    if (f === "DSD" || f === "DSF" || f === "DFF") return "dsd";
+                    if (f === "FLAC" || f === "WAV" || f === "AIFF" || f === "ALAC") return "hires";
+                    return "standard";
+                }
             }
         }
 
@@ -181,9 +194,10 @@ Rectangle {
 
             SoniqIconButton {
                 anchors.centerIn: parent
-                iconSymbol: root.isFavorite ? "♥" : "♡"
-                iconPixelSize: 14
+                iconSymbol: root.isFavorite ? "heart_filled" : "heart"
+                iconPixelSize: 15
                 iconColor: root.isFavorite ? Colors.accent : Colors.textMuted
+                tooltipText: root.isFavorite ? "Remove from Favorites" : "Add to Favorites"
                 onClicked: root.favoriteClicked()
             }
         }
@@ -195,7 +209,7 @@ Rectangle {
             horizontalAlignment: Text.AlignRight
             text: root.duration
             font.family: Typography.monospaceFamily
-            font.pixelSize: Typography.sizeBody
+            font.pixelSize: Typography.sizeCaption
             color: Colors.textMuted
         }
 
@@ -211,30 +225,81 @@ Rectangle {
                 iconSymbol: "•••"
                 iconPixelSize: 11
                 iconColor: optionsPopup.visible ? Colors.accent : Colors.textMuted
+                tooltipText: "Options"
                 onClicked: optionsPopup.open()
             }
 
             Popup {
                 id: optionsPopup
-                y: 30
-                x: -140
-                width: 176
-                padding: 4
+                y: 32
+                x: -160
+                width: 190
+                padding: 6
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                 background: Rectangle {
-                    radius: Theme.cornerRadiusSmall
+                    radius: Theme.cornerRadiusMedium
                     color: Colors.surfaceElevated
-                    border.color: Colors.borderSubtle
+                    border.color: Colors.borderMedium
                     border.width: 1
                 }
                 contentItem: Column {
                     spacing: 2
 
-                    // Option: Add to Playlist
+                    // Play Next
                     Rectangle {
                         width: parent.width
-                        height: 30
-                        radius: 4
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
+                        color: playNextMouse.containsMouse ? Colors.surfaceHover : "transparent"
+                        MouseArea {
+                            id: playNextMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                playbackController.enqueueTrack(root.filePath, true);
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "play"; size: 12; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Play Next"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+
+                    // Add to Queue
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
+                        color: queueMouse.containsMouse ? Colors.surfaceHover : "transparent"
+                        MouseArea {
+                            id: queueMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                playbackController.enqueueTrack(root.filePath, false);
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "queue"; size: 12; color: Colors.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Add to Queue"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+
+                    // Add to Playlist
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
                         color: addPlMouse.containsMouse ? Colors.surfaceHover : "transparent"
                         MouseArea {
                             id: addPlMouse
@@ -248,19 +313,18 @@ Rectangle {
                         }
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
-                            Text { text: "＋"; font.pixelSize: 12; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "add"; size: 12; color: Colors.textSecondary; anchors.verticalCenter: parent.verticalCenter }
                             Text { text: "Add to Playlist..."; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
 
-                    // Option: Edit Tags
+                    // Edit Tags
                     Rectangle {
                         width: parent.width
-                        height: 30
-                        radius: 4
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
                         color: editMouse.containsMouse ? Colors.surfaceHover : "transparent"
                         MouseArea {
                             id: editMouse
@@ -274,20 +338,45 @@ Rectangle {
                         }
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
-                            Text { text: "✎"; font.pixelSize: 12; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "edit"; size: 12; color: Colors.textSecondary; anchors.verticalCenter: parent.verticalCenter }
                             Text { text: "Edit Metadata Tags..."; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
 
-                    // Option: Remove from Playlist (if currently in a playlist view)
+                    // Inspect Audio
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
+                        color: inspMouse.containsMouse ? Colors.surfaceHover : "transparent"
+                        MouseArea {
+                            id: inspMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                optionsPopup.close();
+                                audioInspector.inspectFile(root.filePath);
+                                if (window) window.activeScreen = "inspector";
+                            }
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "inspector"; size: 12; color: Colors.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Inspect Audio File"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.textPrimary; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                    }
+
+                    // Remove from Playlist (if in playlist view)
                     Rectangle {
                         visible: root.inPlaylist
                         width: parent.width
-                        height: 30
-                        radius: 4
+                        height: 32
+                        radius: Theme.cornerRadiusSmall
                         color: remMouse.containsMouse ? Qt.rgba(1, 0, 0, 0.15) : "transparent"
                         MouseArea {
                             id: remMouse
@@ -301,11 +390,10 @@ Rectangle {
                         }
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
-                            Text { text: "✕"; font.pixelSize: 11; color: "#EF4444"; anchors.verticalCenter: parent.verticalCenter }
-                            Text { text: "Remove from Playlist"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: "#EF4444"; anchors.verticalCenter: parent.verticalCenter }
+                            anchors.leftMargin: 10
+                            spacing: 10
+                            SoniqIcon { name: "trash"; size: 12; color: Colors.error; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: "Remove from Playlist"; font.family: Typography.fontFamily; font.pixelSize: Typography.sizeCaption; color: Colors.error; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
                 }

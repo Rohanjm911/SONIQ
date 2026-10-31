@@ -16,6 +16,8 @@ class LibraryModel : public QAbstractListModel {
     Q_PROPERTY(QVariantList playlists READ getPlaylists NOTIFY playlistsChanged)
     Q_PROPERTY(qint64 activePlaylistId READ activePlaylistId NOTIFY activePlaylistChanged)
     Q_PROPERTY(QString activePlaylistName READ activePlaylistName NOTIFY activePlaylistChanged)
+    Q_PROPERTY(QString activeFilterType READ activeFilterType NOTIFY activeFilterChanged)
+    Q_PROPERTY(QString activeFilterValue READ activeFilterValue NOTIFY activeFilterChanged)
 
 public:
     enum TrackRoles {
@@ -48,6 +50,12 @@ public:
     [[nodiscard]] QVariantList getPlaylists() const;
     [[nodiscard]] qint64 activePlaylistId() const { return m_activePlaylistId; }
     [[nodiscard]] QString activePlaylistName() const { return m_activePlaylistName; }
+    [[nodiscard]] QString activeFilterType() const { return m_activeFilterType; }
+    [[nodiscard]] QString activeFilterValue() const { return m_activeFilterValue; }
+
+    Q_INVOKABLE QVariantList getAlbums() const;
+    Q_INVOKABLE QVariantList getArtists() const;
+    Q_INVOKABLE QVariantList getGenres() const;
 
 public slots:
     void refresh();
@@ -55,6 +63,11 @@ public slots:
     void filterFavorites();
     void filterRecentlyPlayed();
     void filterRecentlyAdded();
+    void filterMostPlayed();
+    void filterByAlbum(const QString& album);
+    void filterByArtist(const QString& artist);
+    void filterByGenre(const QString& genre);
+    void clearFilter();
     void toggleFavorite(int row);
     QVariantMap getTrackAt(int row) const;
 
@@ -81,6 +94,7 @@ signals:
     void sortChanged();
     void playlistsChanged();
     void activePlaylistChanged();
+    void activeFilterChanged();
 
 private:
     void applyCurrentSort();
@@ -91,6 +105,8 @@ private:
     QString m_lastSearchQuery;
     qint64 m_activePlaylistId{-1};
     QString m_activePlaylistName;
+    QString m_activeFilterType;
+    QString m_activeFilterValue;
 };
 
 } // namespace soniq::services

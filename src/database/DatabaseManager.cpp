@@ -577,4 +577,104 @@ std::string DatabaseManager::getPreference(const std::string& key, const std::st
     return defaultValue;
 }
 
+std::vector<DatabaseManager::AlbumSummary> DatabaseManager::getDistinctAlbums() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<AlbumSummary> results;
+    QSqlQuery query(getDatabase());
+    QString sql = "SELECT album, artist, COUNT(*) as cnt, MAX(artwork_path) as art, MAX(year) as yr "
+                  "FROM tracks WHERE album IS NOT NULL AND album != '' "
+                  "GROUP BY album ORDER BY album COLLATE NOCASE ASC;";
+    if (query.exec(sql)) {
+        while (query.next()) {
+            AlbumSummary a;
+            a.album = query.value(0).toString().toStdString();
+            a.artist = query.value(1).toString().toStdString();
+            a.trackCount = query.value(2).toUInt();
+            a.artworkPath = query.value(3).toString().toStdString();
+            a.year = query.value(4).toUInt();
+            results.push_back(std::move(a));
+        }
+    }
+    return results;
+}
+
+std::vector<DatabaseManager::ArtistSummary> DatabaseManager::getDistinctArtists() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<ArtistSummary> results;
+    QSqlQuery query(getDatabase());
+    QString sql = "SELECT artist, COUNT(*) as cnt, COUNT(DISTINCT album) as alb_cnt "
+                  "FROM tracks WHERE artist IS NOT NULL AND artist != '' "
+                  "GROUP BY artist ORDER BY artist COLLATE NOCASE ASC;";
+    if (query.exec(sql)) {
+        while (query.next()) {
+            ArtistSummary a;
+            a.artist = query.value(0).toString().toStdString();
+            a.trackCount = query.value(1).toUInt();
+            a.albumCount = query.value(2).toUInt();
+            results.push_back(std::move(a));
+        }
+    }
+    return results;
+}
+
+std::vector<DatabaseManager::GenreSummary> DatabaseManager::getDistinctGenres() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<GenreSummary> results;
+    QSqlQuery query(getDatabase());
+    QString sql = "SELECT genre, COUNT(*) as cnt "
+                  "FROM tracks WHERE genre IS NOT NULL AND genre != '' "
+                  "GROUP BY genre ORDER BY genre COLLATE NOCASE ASC;";
+    if (query.exec(sql)) {
+        while (query.next()) {
+            GenreSummary g;
+            g.genre = query.value(0).toString().toStdString();
+            g.trackCount = query.value(1).toUInt();
+            results.push_back(std::move(g));
+        }
+    }
+    return results;
+}
+
+std::vector<TrackRecord> DatabaseManager::getTracksByAlbum(const std::string& album) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<TrackRecord> results;
+    QSqlQuery query(getDatabase());
+    query.prepare("SELECT * FROM tracks WHERE album = :alb ORDER BY disc_number ASC, track_number ASC, title ASC;");
+    query.bindValue(":alb", QString::fromStdString(album));
+    if (query.exec()) {
+        while (query.next()) {
+            results.push_back(readTrackRecord(query));
+        }
+    }
+    return results;
+}
+
+std::vector<TrackRecord> DatabaseManager::getTracksByArtist(const std::string& artist) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<TrackRecord> results;
+    QSqlQuery query(getDatabase());
+    query.prepare("SELECT * FROM tracks WHERE artist = :art ORDER BY album ASC, disc_number ASC, track_number ASC, title ASC;");
+    query.bindValue(":art", QString::fromStdString(artist));
+    if (query.exec()) {
+        while (query.next()) {
+            results.push_back(readTrackRecord(query));
+        }
+    }
+    return results;
+}
+
+std::vector<TrackRecord> DatabaseManager::getTracksByGenre(const std::string& genre) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<TrackRecord> results;
+    QSqlQuery query(getDatabase());
+    query.prepare("SELECT * FROM tracks WHERE genre = :gen ORDER BY artist ASC, album ASC, track_number ASC;");
+    query.bindValue(":gen", QString::fromStdString(genre));
+    if (query.exec()) {
+        while (query.next()) {
+            results.push_back(readTrackRecord(query));
+        }
+    }
+    return results;
+}
+
 } // namespace soniq::db

@@ -21,14 +21,14 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 16
+        anchors.margins: Theme.spacingM
         height: 40
         spacing: 12
 
         Rectangle {
             width: 38
             height: 38
-            radius: 10
+            radius: Theme.cornerRadiusMedium
             color: Colors.surfaceActive
             border.color: Colors.borderSubtle
             border.width: 1
@@ -36,12 +36,11 @@ Rectangle {
 
             Image {
                 anchors.centerIn: parent
-                width: 32
-                height: 32
+                width: 30
+                height: 30
                 source: "qrc:/ui/assets/logo_icon.png"
                 fillMode: Image.PreserveAspectFit
-                smooth: false
-                mipmap: true
+                smooth: true
             }
         }
 
@@ -53,7 +52,7 @@ Rectangle {
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeTitleMedium
                 font.weight: Typography.weightBold
-                font.letterSpacing: 1.5
+                font.letterSpacing: Typography.letterSpacingWide
                 color: Colors.textPrimary
             }
             Text {
@@ -61,7 +60,7 @@ Rectangle {
                 font.family: Typography.monospaceFamily
                 font.pixelSize: Typography.sizeMicro
                 font.weight: Typography.weightBold
-                font.letterSpacing: 1.0
+                font.letterSpacing: Typography.letterSpacingCaps
                 color: Colors.textMuted
             }
         }
@@ -71,48 +70,49 @@ Rectangle {
     Flickable {
         id: navFlickable
         anchors.top: brandingRow.bottom
-        anchors.topMargin: 12
+        anchors.topMargin: Theme.spacingXS
         anchors.bottom: statusCard.top
-        anchors.bottomMargin: 8
+        anchors.bottomMargin: Theme.spacingXS
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
+        anchors.leftMargin: Theme.spacingS
+        anchors.rightMargin: Theme.spacingS
         contentHeight: navColumn.height
         clip: true
 
         Column {
             id: navColumn
             width: parent.width
-            spacing: 18
+            spacing: 16
 
             // Section: LISTEN NOW
             Column {
                 width: parent.width
-                spacing: 3
+                spacing: 2
 
                 Text {
                     text: "LISTEN NOW"
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
+                    font.letterSpacing: Typography.letterSpacingCaps
                     color: Colors.textMuted
-                    leftPadding: 12
+                    leftPadding: 10
                     bottomPadding: 4
                 }
 
                 Repeater {
                     model: [
-                        { id: "home", label: "Home", icon: "⌂" },
-                        { id: "songs", label: "Songs", icon: "♫" },
-                        { id: "nowplaying", label: "Now Playing", icon: "▶" }
+                        { id: "home", label: "Home", icon: "home" },
+                        { id: "nowplaying", label: "Now Playing", icon: "play" }
                     ]
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 36
+                        height: 34
                         radius: Theme.cornerRadiusSmall
-                        color: (root.currentScreen === modelData.id && libraryModel.activePlaylistId <= 0) ? Colors.surfaceActive : (navMouse.containsMouse ? Colors.surfaceHover : "transparent")
+                        property bool isSelected: (root.currentScreen === modelData.id && libraryModel.activePlaylistId <= 0 && libraryModel.activeFilterType === "")
+                        color: isSelected ? Colors.surfaceActive : (navMouse.containsMouse ? Colors.surfaceHover : "transparent")
 
                         Behavior on color {
                             ColorAnimation { duration: Motion.durationFast }
@@ -124,8 +124,8 @@ Rectangle {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                if (modelData.id === "songs") {
-                                    libraryModel.clearPlaylistFilter();
+                                if (modelData.id === "home") {
+                                    libraryModel.clearFilter();
                                 }
                                 root.navigationRequested(modelData.id);
                             }
@@ -133,14 +133,14 @@ Rectangle {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 12
-                            spacing: 12
+                            anchors.leftMargin: 10
+                            spacing: 10
 
                             SoniqIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: modelData.icon
-                                size: 16
-                                color: (root.currentScreen === modelData.id && libraryModel.activePlaylistId <= 0) ? Colors.accent : Colors.textSecondary
+                                size: 15
+                                color: isSelected ? Colors.accent : Colors.textSecondary
                             }
 
                             Text {
@@ -148,8 +148,102 @@ Rectangle {
                                 text: modelData.label
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeBody
-                                font.weight: (root.currentScreen === modelData.id && libraryModel.activePlaylistId <= 0) ? Typography.weightMedium : Typography.weightNormal
-                                color: (root.currentScreen === modelData.id && libraryModel.activePlaylistId <= 0) ? Colors.textPrimary : Colors.textSecondary
+                                font.weight: isSelected ? Typography.weightMedium : Typography.weightRegular
+                                color: isSelected ? Colors.textPrimary : Colors.textSecondary
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section: LIBRARY
+            Column {
+                width: parent.width
+                spacing: 2
+
+                Text {
+                    text: "LIBRARY"
+                    font.family: Typography.fontFamily
+                    font.pixelSize: Typography.sizeMicro
+                    font.weight: Typography.weightBold
+                    font.letterSpacing: Typography.letterSpacingCaps
+                    color: Colors.textMuted
+                    leftPadding: 10
+                    bottomPadding: 4
+                }
+
+                Repeater {
+                    model: [
+                        { id: "songs", filterType: "", label: "Songs", icon: "songs" },
+                        { id: "songs", filterType: "albums_view", label: "Albums", icon: "albums" },
+                        { id: "songs", filterType: "artists_view", label: "Artists", icon: "artists" },
+                        { id: "songs", filterType: "genres_view", label: "Genres", icon: "genres" },
+                        { id: "songs", filterType: "favorites", label: "Favorites", icon: "favorites" },
+                        { id: "songs", filterType: "recent_played", label: "Recently Played", icon: "recent" }
+                    ]
+
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 34
+                        radius: Theme.cornerRadiusSmall
+                        property bool isSelected: (root.currentScreen === "songs" && libraryModel.activePlaylistId <= 0 &&
+                            ((modelData.filterType === "" && libraryModel.activeFilterType === "") ||
+                             (modelData.filterType === libraryModel.activeFilterType)))
+
+                        color: isSelected ? Colors.surfaceActive : (libMouse.containsMouse ? Colors.surfaceHover : "transparent")
+
+                        Behavior on color {
+                            ColorAnimation { duration: Motion.durationFast }
+                        }
+
+                        MouseArea {
+                            id: libMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (modelData.filterType === "") {
+                                    libraryModel.clearFilter();
+                                } else if (modelData.filterType === "favorites") {
+                                    libraryModel.filterFavorites();
+                                } else if (modelData.filterType === "recent_played") {
+                                    libraryModel.filterRecentlyPlayed();
+                                } else if (modelData.filterType === "albums_view") {
+                                    window.activeLibraryTab = "albums";
+                                    libraryModel.clearFilter();
+                                } else if (modelData.filterType === "artists_view") {
+                                    window.activeLibraryTab = "artists";
+                                    libraryModel.clearFilter();
+                                } else if (modelData.filterType === "genres_view") {
+                                    window.activeLibraryTab = "genres";
+                                    libraryModel.clearFilter();
+                                }
+                                if (modelData.filterType !== "albums_view" && modelData.filterType !== "artists_view" && modelData.filterType !== "genres_view") {
+                                    window.activeLibraryTab = "songs";
+                                }
+                                root.navigationRequested("songs");
+                            }
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            spacing: 10
+
+                            SoniqIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                name: modelData.icon
+                                size: 15
+                                color: isSelected ? Colors.accent : Colors.textSecondary
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: isSelected ? Typography.weightMedium : Typography.weightRegular
+                                color: isSelected ? Colors.textPrimary : Colors.textSecondary
                             }
                         }
                     }
@@ -159,7 +253,7 @@ Rectangle {
             // Section: PLAYLISTS
             Column {
                 width: parent.width
-                spacing: 3
+                spacing: 2
 
                 Item {
                     width: parent.width
@@ -167,12 +261,13 @@ Rectangle {
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
                         text: "PLAYLISTS"
                         font.family: Typography.fontFamily
                         font.pixelSize: Typography.sizeMicro
                         font.weight: Typography.weightBold
+                        font.letterSpacing: Typography.letterSpacingCaps
                         color: Colors.textMuted
                     }
 
@@ -180,8 +275,9 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.rightMargin: 4
                         anchors.verticalCenter: parent.verticalCenter
-                        iconSymbol: "＋"
-                        iconPixelSize: 12
+                        iconSymbol: "add"
+                        iconPixelSize: 13
+                        tooltipText: "Create Playlist"
                         onClicked: createPlaylistDialog.open()
                     }
                 }
@@ -191,7 +287,7 @@ Rectangle {
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 34
+                        height: 32
                         radius: Theme.cornerRadiusSmall
                         property bool isCurrentPl: (root.currentScreen === "songs" && libraryModel.activePlaylistId === modelData.id)
                         color: isCurrentPl ? Colors.surfaceActive : (plMouse.containsMouse ? Colors.surfaceHover : "transparent")
@@ -206,6 +302,7 @@ Rectangle {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
+                                window.activeLibraryTab = "songs";
                                 libraryModel.filterByPlaylist(modelData.id, modelData.name);
                                 root.navigationRequested("songs");
                             }
@@ -213,13 +310,13 @@ Rectangle {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 12
-                            anchors.rightMargin: 10
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 8
                             spacing: 8
 
-                            Text {
-                                text: "☰"
-                                font.pixelSize: 12
+                            SoniqIcon {
+                                name: "playlists"
+                                size: 13
                                 color: isCurrentPl ? Colors.accent : Colors.textMuted
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -229,10 +326,10 @@ Rectangle {
                                 text: modelData.name
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeCaption
-                                font.weight: isCurrentPl ? Typography.weightMedium : Typography.weightNormal
+                                font.weight: isCurrentPl ? Typography.weightMedium : Typography.weightRegular
                                 color: isCurrentPl ? Colors.textPrimary : Colors.textSecondary
                                 elide: Text.ElideRight
-                                width: Math.max(50, parent.width - 70)
+                                width: Math.max(50, parent.width - 66)
                             }
 
                             Item { width: 1; height: 1; Layout.fillWidth: true }
@@ -250,11 +347,11 @@ Rectangle {
 
                 Text {
                     visible: libraryModel.playlists.length === 0
-                    text: "No playlists yet (click ＋)"
+                    text: "No playlists yet"
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeMicro
                     color: Colors.textMuted
-                    leftPadding: 14
+                    leftPadding: 12
                     topPadding: 2
                 }
             }
@@ -262,15 +359,16 @@ Rectangle {
             // Section: AUDIO ENGINE
             Column {
                 width: parent.width
-                spacing: 3
+                spacing: 2
 
                 Text {
                     text: "AUDIO ENGINE"
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
+                    font.letterSpacing: Typography.letterSpacingCaps
                     color: Colors.textMuted
-                    leftPadding: 12
+                    leftPadding: 10
                     bottomPadding: 4
                 }
 
@@ -278,14 +376,15 @@ Rectangle {
                     model: [
                         { id: "equalizer", label: "Equalizer & DSP", icon: "equalizer" },
                         { id: "inspector", label: "Audio Inspector", icon: "inspector" },
-                        { id: "settings", label: "Settings", icon: "⚙" }
+                        { id: "settings", label: "Settings", icon: "settings" }
                     ]
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 36
+                        height: 34
                         radius: Theme.cornerRadiusSmall
-                        color: root.currentScreen === modelData.id ? Colors.surfaceActive : (navMouse2.containsMouse ? Colors.surfaceHover : "transparent")
+                        property bool isSelected: (root.currentScreen === modelData.id)
+                        color: isSelected ? Colors.surfaceActive : (navMouse2.containsMouse ? Colors.surfaceHover : "transparent")
 
                         Behavior on color {
                             ColorAnimation { duration: Motion.durationFast }
@@ -301,14 +400,14 @@ Rectangle {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 12
-                            spacing: 12
+                            anchors.leftMargin: 10
+                            spacing: 10
 
                             SoniqIcon {
                                 anchors.verticalCenter: parent.verticalCenter
                                 name: modelData.icon
-                                size: 16
-                                color: root.currentScreen === modelData.id ? Colors.accent : Colors.textSecondary
+                                size: 15
+                                color: isSelected ? Colors.accent : Colors.textSecondary
                             }
 
                             Text {
@@ -316,8 +415,8 @@ Rectangle {
                                 text: modelData.label
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeBody
-                                font.weight: root.currentScreen === modelData.id ? Typography.weightMedium : Typography.weightNormal
-                                color: root.currentScreen === modelData.id ? Colors.textPrimary : Colors.textSecondary
+                                font.weight: isSelected ? Typography.weightMedium : Typography.weightRegular
+                                color: isSelected ? Colors.textPrimary : Colors.textSecondary
                             }
                         }
                     }
@@ -332,8 +431,8 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 12
-        height: 60
+        anchors.margins: Theme.spacingS
+        height: 58
 
         Column {
             anchors.centerIn: parent

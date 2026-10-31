@@ -4,10 +4,8 @@ import QtQuick.Dialogs
 import "../themes"
 import "../components"
 
-ScrollView {
+Item {
     id: root
-
-    clip: true
 
     FileDialog {
         id: fileDialog
@@ -19,12 +17,25 @@ ScrollView {
         }
     }
 
-    Column {
-        width: Math.min(840, parent.width - 48)
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 24
-        topPadding: 24
-        bottomPadding: 32
+    Flickable {
+        id: flickable
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: contentCol.implicitHeight + 64
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
+
+        ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+        }
+
+        Column {
+            id: contentCol
+            width: Math.min(880, Math.max(480, flickable.width - 48))
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 24
+            spacing: 20
 
         // Header
         Item {
@@ -47,7 +58,7 @@ ScrollView {
                     color: Colors.textPrimary
                 }
                 Text {
-                    text: "Deep container, codec, audio stream analysis, and bit-perfect verification audit."
+                    text: "Container, codec, audio stream analysis, and bit-perfect hardware verification audit."
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeBody
                     color: Colors.textSecondary
@@ -68,24 +79,27 @@ ScrollView {
         SoniqCard {
             width: parent.width
             height: 96
+            color: Colors.surfaceCard
 
             Item {
                 anchors.fill: parent
-                anchors.margins: 20
+                anchors.margins: 18
 
                 Rectangle {
                     id: iconRect
                     width: 56
                     height: 56
-                    radius: 12
+                    radius: Theme.cornerRadiusMedium
                     color: Colors.surfaceElevated
+                    border.color: Colors.borderSubtle
+                    border.width: 1
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
+                    SoniqIcon {
                         anchors.centerIn: parent
-                        text: "♫"
-                        font.pixelSize: 24
+                        name: "songs"
+                        size: 26
                         color: Colors.accent
                     }
                 }
@@ -119,14 +133,15 @@ ScrollView {
             }
         }
 
-        // Audio Stream Specifications Grid
+        // Section 1: Audio Stream Specifications Grid
         SoniqCard {
             width: parent.width
-            height: 230
+            height: 220
+            color: Colors.surfaceCard
 
             Column {
                 anchors.fill: parent
-                anchors.margins: 20
+                anchors.margins: 18
                 spacing: 16
 
                 Text {
@@ -134,60 +149,165 @@ ScrollView {
                     font.family: Typography.monospaceFamily
                     font.pixelSize: Typography.sizeMicro
                     font.weight: Typography.weightBold
+                    font.letterSpacing: Typography.letterSpacingCaps
                     color: Colors.textMuted
                 }
 
-                Grid {
-                    id: specGrid
-                    columns: 3
+                // Row 1: Container Format | Codec Name | Sample Rate
+                Item {
                     width: parent.width
-                    rowSpacing: 18
-                    columnSpacing: 16
+                    height: 52
 
-                    Repeater {
-                        model: [
-                            { label: "Container Format", val: audioInspector.containerFormat.length > 0 ? audioInspector.containerFormat : "WAV (RIFF)" },
-                            { label: "Codec Name", val: audioInspector.codecLongName.length > 0 ? audioInspector.codecLongName : "Linear PCM" },
-                            { label: "Sample Rate", val: (audioInspector.sampleRate > 0 ? (audioInspector.sampleRate / 1000.0).toFixed(1) : "44.1") + " kHz" },
-                            { label: "Bit Depth", val: (audioInspector.bitDepth > 0 ? audioInspector.bitDepth : 16) + "-bit" },
-                            { label: "Channel Layout", val: audioInspector.channels === 1 ? "Mono (1.0)" : "Stereo (2.0)" },
-                            { label: "Bitrate", val: (audioInspector.bitrate > 0 ? audioInspector.bitrate : 1411) + " kbps" }
-                        ]
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.left: parent.left
+                        spacing: 4
 
-                        Column {
-                            width: (specGrid.width - 32) / 3
-                            spacing: 4
+                        Text {
+                            text: "Container Format"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: audioInspector.containerFormat.length > 0 ? audioInspector.containerFormat : "Linear WAV"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
 
-                            Text {
-                                text: modelData.label
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeCaption
-                                color: Colors.textMuted
-                            }
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 4
 
-                            Text {
-                                text: modelData.val
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeTitleSmall
-                                font.weight: Typography.weightMedium
-                                color: Colors.textPrimary
-                                elide: Text.ElideRight
-                                width: parent.width
-                            }
+                        Text {
+                            text: "Codec Name"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: audioInspector.codecLongName.length > 0 ? audioInspector.codecLongName : "PCM"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
+
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.right: parent.right
+                        spacing: 4
+
+                        Text {
+                            text: "Sample Rate"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: (audioInspector.sampleRate > 0 ? (audioInspector.sampleRate / 1000.0).toFixed(1) : "44.1") + " kHz"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
+                }
+
+                // Row 2: Bit Depth | Channel Layout | Bitrate
+                Item {
+                    width: parent.width
+                    height: 52
+
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.left: parent.left
+                        spacing: 4
+
+                        Text {
+                            text: "Bit Depth"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: (audioInspector.bitDepth > 0 ? audioInspector.bitDepth : 16) + "-bit"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
+
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 4
+
+                        Text {
+                            text: "Channel Layout"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: audioInspector.channels === 1 ? "Mono (1.0)" : "Stereo (2.0)"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
+                        }
+                    }
+
+                    Column {
+                        width: Math.floor((parent.width - 32) / 3)
+                        anchors.right: parent.right
+                        spacing: 4
+
+                        Text {
+                            text: "Bitrate"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textMuted
+                        }
+                        Text {
+                            text: (audioInspector.bitrate > 0 ? audioInspector.bitrate : 1411) + " kbps"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeTitleSmall
+                            font.weight: Typography.weightMedium
+                            color: Colors.textPrimary
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
                     }
                 }
             }
         }
 
-        // Bit-Perfect Eligibility Assessment
+        // Section 2: Bit-Perfect Hardware Audit Card
         SoniqCard {
             width: parent.width
             height: 120
+            color: Colors.surfaceCard
 
             Column {
                 anchors.fill: parent
-                anchors.margins: 20
+                anchors.margins: 18
                 spacing: 10
 
                 Row {
@@ -196,15 +316,16 @@ ScrollView {
                         width: 8
                         height: 8
                         radius: 4
-                        color: audioInspector.isBitPerfectEligible ? Colors.success : Colors.warning
+                        color: audioInspector.isBitPerfectEligible ? Colors.bitPerfectVerified : Colors.warning
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
                     Text {
-                        text: "BIT-PERFECT AUDIT"
+                        text: "BIT-PERFECT OUTPUT VERIFICATION AUDIT"
                         font.family: Typography.monospaceFamily
                         font.pixelSize: Typography.sizeMicro
                         font.weight: Typography.weightBold
+                        font.letterSpacing: Typography.letterSpacingCaps
                         color: Colors.textMuted
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -225,4 +346,5 @@ ScrollView {
             }
         }
     }
+}
 }

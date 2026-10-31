@@ -10,3 +10,5 @@ TagEditorDialog 1.0 TagEditorDialog.qml
 CreatePlaylistDialog 1.0 CreatePlaylistDialog.qml
 AddToPlaylistDialog 1.0 AddToPlaylistDialog.qml
 SplashOverlay 1.0 SplashOverlay.qml
+SoniqToast 1.0 SoniqToast.qml
+SoniqVisualizer 1.0 SoniqVisualizer.qml

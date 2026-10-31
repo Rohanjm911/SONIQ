@@ -83,6 +83,16 @@ void SettingsService::setCrossfadeSeconds(double sec) {
     emit settingsChanged();
 }
 
+bool SettingsService::reducedMotion() const {
+    auto val = db::DatabaseManager::instance().getPreference("reduced_motion", "false");
+    return val == "true";
+}
+
+void SettingsService::setReducedMotion(bool enabled) {
+    db::DatabaseManager::instance().setPreference("reduced_motion", enabled ? "true" : "false");
+    emit settingsChanged();
+}
+
 void SettingsService::resetToDefaults() {
     setThemeMode("Dark");
     setAccentColor("#FA2D48");
@@ -91,6 +101,7 @@ void SettingsService::resetToDefaults() {
     setReplayGainEnabled(false);
     setCrossfadeEnabled(false);
     setCrossfadeSeconds(2.0);
+    setReducedMotion(false);
 }
 
 } // namespace soniq::services

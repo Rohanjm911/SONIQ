@@ -9,6 +9,9 @@ Item {
 
     signal scanFolderRequested(string path)
 
+    // Current Library Sub-View: "songs", "albums", "artists", "genres"
+    property string activeTab: (window && window.activeLibraryTab) ? window.activeLibraryTab : "songs"
+
     FolderDialog {
         id: folderDialog
         title: "Select Music Folder"
@@ -19,23 +22,34 @@ Item {
 
     Column {
         anchors.fill: parent
-        anchors.margins: 24
+        anchors.margins: Theme.spacingXL
         spacing: 16
 
-        // Header, Search Bar, and Sort Controls
+        // 1. Top Control Bar: View Switcher, Title, Search, and Sort
         Item {
             width: parent.width
-            height: 38
+            height: 42
 
+            // Left: Title and Active Filter Pill
             Row {
                 id: titleGroup
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 10
+                spacing: 12
 
                 Text {
-                    id: songsTitle
-                    text: libraryModel.activePlaylistId > 0 ? libraryModel.activePlaylistName : "Songs"
+                    text: {
+                        if (libraryModel.activePlaylistId > 0) return libraryModel.activePlaylistName;
+                        if (libraryModel.activeFilterType === "album") return libraryModel.activeFilterValue;
+                        if (libraryModel.activeFilterType === "artist") return libraryModel.activeFilterValue;
+                        if (libraryModel.activeFilterType === "genre") return libraryModel.activeFilterValue;
+                        if (libraryModel.activeFilterType === "favorites") return "Favorites";
+                        if (libraryModel.activeFilterType === "recent_played") return "Recently Played";
+                        if (root.activeTab === "albums") return "Albums";
+                        if (root.activeTab === "artists") return "Artists";
+                        if (root.activeTab === "genres") return "Genres";
+                        return "Songs";
+                    }
                     font.family: Typography.fontFamily
                     font.pixelSize: Typography.sizeTitleLarge
                     font.weight: Typography.weightBold
@@ -43,455 +57,598 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
+                // Filter active indicator with quick clear
                 Rectangle {
-                    visible: libraryModel.activePlaylistId > 0
+                    visible: libraryModel.activePlaylistId > 0 || (libraryModel.activeFilterType && libraryModel.activeFilterType.length > 0)
                     height: 24
-                    width: clearPlText.width + 16
-                    radius: 12
-                    color: Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.15)
+                    width: clearPlRow.implicitWidth + 14
+                    radius: Theme.cornerRadiusPill
+                    color: Colors.accentMuted
                     border.color: Colors.accent
                     border.width: 1
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Text {
-                        id: clearPlText
+                    Row {
+                        id: clearPlRow
                         anchors.centerIn: parent
-                        text: "✕ Clear Filter"
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: Colors.accent
+                        spacing: 4
+
+                        Text {
+                            text: "✕ Clear Filter"
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeMicro
+                            font.weight: Typography.weightMedium
+                            color: Colors.accent
+                        }
                     }
 
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.clearPlaylistFilter()
-                    }
-                }
-            }
-
-            Rectangle {
-                id: searchBar
-                anchors.left: titleGroup.right
-                anchors.leftMargin: 16
-                anchors.verticalCenter: parent.verticalCenter
-                width: Math.min(260, Math.max(140, topActionRow.x - titleGroup.x - titleGroup.width - 32))
-                height: 36
-                radius: Theme.cornerRadiusSmall
-                color: Colors.surfaceElevated
-                border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
-
-                Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    spacing: 8
-
-                    SoniqIcon {
-                        name: "search"
-                        size: 14
-                        color: Colors.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    TextInput {
-                        id: searchInput
-                        width: parent.width - 24
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeBody
-                        color: Colors.textPrimary
-                        selectByMouse: true
-                        onTextChanged: libraryModel.search(text)
-
-                        Text {
-                            visible: parent.text.length === 0
-                            text: "Search songs, artists..."
-                            font.family: Typography.fontFamily
-                            font.pixelSize: Typography.sizeBody
-                            color: Colors.textMuted
-                            anchors.verticalCenter: parent.verticalCenter
+                        onClicked: {
+                            libraryModel.clearFilter();
+                            root.activeTab = "songs";
+                            if (window) window.activeLibraryTab = "songs";
                         }
                     }
                 }
             }
 
+            // Center: Segmented View Switcher Tabs (Songs | Albums | Artists | Genres)
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                height: 34
+                width: 320
+                radius: Theme.cornerRadiusSmall
+                color: Colors.surfaceElevated
+                border.color: Colors.borderSubtle
+                border.width: 1
+                visible: parent.width > 780
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: 2
+                    spacing: 2
+
+                    Repeater {
+                        model: [
+                            { id: "songs", label: "Songs" },
+                            { id: "albums", label: "Albums" },
+                            { id: "artists", label: "Artists" },
+                            { id: "genres", label: "Genres" }
+                        ]
+
+                        delegate: Rectangle {
+                            width: (parent.width - 6) / 4
+                            height: parent.height
+                            radius: Theme.cornerRadiusSmall - 1
+                            property bool isCurrentTab: (root.activeTab === modelData.id)
+                            color: isCurrentTab ? Colors.surfaceCard : (tabMouse.containsMouse ? Colors.surfaceHover : "transparent")
+
+                            Behavior on color { ColorAnimation { duration: Motion.durationFast } }
+
+                            MouseArea {
+                                id: tabMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    root.activeTab = modelData.id;
+                                    if (window) window.activeLibraryTab = modelData.id;
+                                    if (modelData.id === "songs" && libraryModel.activeFilterType !== "favorites" && libraryModel.activeFilterType !== "recent_played") {
+                                        libraryModel.clearFilter();
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.label
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeCaption
+                                font.weight: isCurrentTab ? Typography.weightMedium : Typography.weightRegular
+                                color: isCurrentTab ? Colors.textPrimary : Colors.textSecondary
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Right: Search Bar, Sort selector, and Add Folder
             Row {
                 id: topActionRow
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
 
-                // Delete Playlist Button (if currently viewing a playlist)
-                SoniqButton {
-                    id: deletePlBtn
-                    variant: "secondary"
-                    iconText: "✕"
-                    text: "Delete Playlist"
-                    visible: libraryModel.activePlaylistId > 0
-                    onClicked: libraryModel.deletePlaylist(libraryModel.activePlaylistId)
+                // Search Bar
+                Rectangle {
+                    width: 200
+                    height: 34
+                    radius: Theme.cornerRadiusSmall
+                    color: Colors.surfaceElevated
+                    border.color: searchInput.activeFocus ? Colors.borderFocus : Colors.borderSubtle
+                    border.width: 1
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 6
+
+                        SoniqIcon {
+                            name: "search"
+                            size: 13
+                            color: Colors.textMuted
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        TextInput {
+                            id: searchInput
+                            width: parent.width - 42
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeCaption
+                            color: Colors.textPrimary
+                            selectByMouse: true
+                            onTextChanged: libraryModel.search(text)
+                        }
+
+                        Text {
+                            visible: searchInput.text.length > 0
+                            text: "✕"
+                            font.pixelSize: 11
+                            color: Colors.textMuted
+                            anchors.verticalCenter: parent.verticalCenter
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: searchInput.text = ""
+                            }
+                        }
+                    }
                 }
 
                 // Sort Dropdown Button
                 SoniqButton {
-                    id: sortBtn
                     variant: "secondary"
-                    iconText: "⇅"
+                    customRadius: Theme.cornerRadiusSmall
                     text: libraryModel.sortLabel
-                    onClicked: sortPopup.visible ? sortPopup.close() : sortPopup.open()
+                    iconText: "sort"
+                    implicitWidth: 150
+                    onClicked: sortMenu.open()
+
+                    Menu {
+                        id: sortMenu
+                        y: parent.height + 4
+                        MenuItem { text: "Title (A → Z)"; onTriggered: libraryModel.setSort("title", true) }
+                        MenuItem { text: "Title (Z → A)"; onTriggered: libraryModel.setSort("title", false) }
+                        MenuItem { text: "Artist (A → Z)"; onTriggered: libraryModel.setSort("artist", true) }
+                        MenuItem { text: "Album (A → Z)"; onTriggered: libraryModel.setSort("album", true) }
+                        MenuItem { text: "Duration (Shortest)"; onTriggered: libraryModel.setSort("duration", true) }
+                        MenuItem { text: "Duration (Longest)"; onTriggered: libraryModel.setSort("duration", false) }
+                        MenuItem { text: "Date Added (Newest)"; onTriggered: libraryModel.setSort("date_added", false) }
+                        MenuItem { text: "Format (Lossless First)"; onTriggered: libraryModel.setSort("format", true) }
+                        MenuItem { text: "Most Played"; onTriggered: libraryModel.setSort("play_count", false) }
+                    }
                 }
 
-                // Shuffle Playlist Button
-                SoniqButton {
-                    id: shuffleBtn
-                    variant: "secondary"
-                    iconText: "shuffle"
-                    text: "Shuffle"
-                    onClicked: libraryModel.shuffleList()
+                // Shuffle button
+                SoniqIconButton {
+                    iconSymbol: "shuffle"
+                    iconPixelSize: 14
+                    tooltipText: "Shuffle All Tracks"
+                    onClicked: {
+                        libraryModel.shuffleList();
+                        if (libraryModel.count > 0) {
+                            var t = libraryModel.getTrackAt(0);
+                            if (t && t.filePath) playbackController.playFile(t.filePath);
+                        }
+                    }
                 }
 
                 // Add Folder Button
-                SoniqButton {
-                    id: addFolderBtn
-                    text: "Add Folder"
-                    iconText: "＋"
+                SoniqIconButton {
+                    iconSymbol: "folder"
+                    iconPixelSize: 14
+                    tooltipText: "Scan Folder"
                     onClicked: folderDialog.open()
                 }
-
-                // Clear Library Button
-                SoniqButton {
-                    id: clearLibraryBtn
-                    variant: "secondary"
-                    text: "Clear"
-                    iconText: "✕"
-                    visible: libraryModel.count > 0 && libraryModel.activePlaylistId <= 0
-                    onClicked: libraryModel.clearLibrary()
-                }
             }
         }
 
-        // Table Column Headers (Clickable for instant column sorting)
-        Rectangle {
+        // 2. View Content Area: Switch between Songs List, Albums Grid, Artists Grid, Genres Grid
+        Item {
             width: parent.width
-            height: 32
-            color: "transparent"
+            height: parent.height - 58
+            clip: true
 
-            // 1. Left Group: # and TITLE
-            Row {
-                id: headerLeftGroup
-                anchors.left: parent.left
-                anchors.leftMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(180, (parent.width - 154 - 80) * 0.50)
-                spacing: 12
+            // === 2A. SONGS LIST VIEW ===
+            ListView {
+                id: songListView
+                anchors.fill: parent
+                visible: root.activeTab === "songs"
+                model: libraryModel
+                clip: true
+                spacing: 3
 
-                Item {
-                    width: 28
-                    height: parent.height
-                    anchors.verticalCenter: parent.verticalCenter
+                delegate: SoniqTrackRow {
+                    required property int index
+                    required property var model
+                    trackNumber: index + 1
+                    trackId: model.id
+                    title: model.title
+                    artist: model.artist
+                    album: model.album
+                    duration: model.durationFormatted
+                    format: model.format
+                    artworkPath: model.artworkPath ? model.artworkPath : ""
+                    isFavorite: model.isFavorite
+                    filePath: model.filePath
+                    inPlaylist: libraryModel.activePlaylistId > 0
+                    isPlaying: playbackController.trackFilePath === model.filePath && playbackController.isPlaying
 
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "#" + (libraryModel.sortField === "track_number" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: libraryModel.sortField === "track_number" ? Colors.accent : (hNumMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
+                    onPlayClicked: playbackController.playFile(model.filePath)
+                    onFavoriteClicked: libraryModel.toggleFavorite(index)
+                    onAddToPlaylistClicked: {
+                        addToPlaylistDialog.trackId = model.id;
+                        addToPlaylistDialog.trackTitle = model.title;
+                        addToPlaylistDialog.open();
                     }
-
-                    MouseArea {
-                        id: hNumMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.sortBy("track_number")
+                    onEditTagsClicked: {
+                        tagEditorDialog.trackId = model.id;
+                        tagEditorDialog.title = model.title;
+                        tagEditorDialog.artist = model.artist;
+                        tagEditorDialog.album = model.album;
+                        tagEditorDialog.genre = model.genre;
+                        tagEditorDialog.year = model.year;
+                        tagEditorDialog.open();
                     }
-                }
-
-                Item {
-                    height: parent.height
-                    width: parent.width - 40
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "TITLE" + (libraryModel.sortField === "title" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: libraryModel.sortField === "title" ? Colors.accent : (hTitleMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
-                    }
-
-                    MouseArea {
-                        id: hTitleMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.sortBy("title")
+                    onRemoveFromPlaylistClicked: {
+                        libraryModel.removeTrackFromPlaylist(libraryModel.activePlaylistId, model.id);
                     }
                 }
+
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
             }
 
-            // 2. Center: ALBUM
-            Item {
-                id: headerAlbumItem
-                anchors.left: headerLeftGroup.right
-                anchors.leftMargin: 16
-                anchors.right: headerRightGroup.left
-                anchors.rightMargin: 16
-                anchors.verticalCenter: parent.verticalCenter
-                height: parent.height
+            // === 2B. ALBUMS GRID VIEW ===
+            GridView {
+                id: albumGridView
+                anchors.fill: parent
+                visible: root.activeTab === "albums"
+                clip: true
+                cellWidth: Math.max(160, Math.floor(width / Math.max(2, Math.floor(width / 170))))
+                cellHeight: cellWidth + 56
+                model: root.activeTab === "albums" ? libraryModel.getAlbums() : []
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "ALBUM" + (libraryModel.sortField === "album" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                    font.family: Typography.monospaceFamily
-                    font.pixelSize: Typography.sizeMicro
-                    font.weight: Typography.weightBold
-                    color: libraryModel.sortField === "album" ? Colors.accent : (hAlbumMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
-                    elide: Text.ElideRight
-                }
+                delegate: Item {
+                    width: albumGridView.cellWidth
+                    height: albumGridView.cellHeight
 
-                MouseArea {
-                    id: hAlbumMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: libraryModel.sortBy("album")
-                }
-            }
-
-            // 3. Right Group: FORMAT + FAV + TIME
-            Row {
-                id: headerRightGroup
-                anchors.right: parent.right
-                anchors.rightMargin: 16
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 12
-
-                Item {
-                    width: 58
-                    height: parent.height
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "FORMAT" + (libraryModel.sortField === "format" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: libraryModel.sortField === "format" ? Colors.accent : (hFmtMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
-                    }
-
-                    MouseArea {
-                        id: hFmtMouse
+                    SoniqCard {
                         anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.sortBy("format")
-                    }
-                }
-
-                Item {
-                    width: 28
-                    height: parent.height
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "FAV" + (libraryModel.sortField === "favorite" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: libraryModel.sortField === "favorite" ? Colors.accent : (hFavMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
-                    }
-
-                    MouseArea {
-                        id: hFavMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.sortBy("favorite")
-                    }
-                }
-
-                Item {
-                    width: 44
-                    height: parent.height
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Text {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "TIME" + (libraryModel.sortField === "duration" ? (libraryModel.sortAscending ? " ▲" : " ▼") : "")
-                        font.family: Typography.monospaceFamily
-                        font.pixelSize: Typography.sizeMicro
-                        font.weight: Typography.weightBold
-                        color: libraryModel.sortField === "duration" ? Colors.accent : (hTimeMouse.containsMouse ? Colors.textPrimary : Colors.textMuted)
-                    }
-
-                    MouseArea {
-                        id: hTimeMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: libraryModel.sortBy("duration")
-                    }
-                }
-            }
-        }
-
-        // Sort Dropdown Menu Popup
-        Popup {
-            id: sortPopup
-            x: Math.max(10, root.width - width - 24)
-            y: 44
-            width: 240
-            padding: 6
-            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-            background: Rectangle {
-                radius: Theme.cornerRadiusSmall
-                color: Colors.surfaceElevated
-                border.color: Colors.borderSubtle
-                border.width: 1
-            }
-            contentItem: Column {
-                spacing: 2
-                Repeater {
-                    model: [
-                        { label: "Title (A → Z)", field: "title", asc: true },
-                        { label: "Title (Z → A)", field: "title", asc: false },
-                        { label: "Artist (A → Z)", field: "artist", asc: true },
-                        { label: "Artist (Z → A)", field: "artist", asc: false },
-                        { label: "Album (A → Z)", field: "album", asc: true },
-                        { label: "Album (Z → A)", field: "album", asc: false },
-                        { label: "Duration (Shortest First)", field: "duration", asc: true },
-                        { label: "Duration (Longest First)", field: "duration", asc: false },
-                        { label: "Date Added (Newest First)", field: "date_added", asc: false },
-                        { label: "Format (Lossless First)", field: "format", asc: true },
-                        { label: "Favorites First", field: "favorite", asc: false },
-                        { label: "Most Played First", field: "play_count", asc: false }
-                    ]
-                    delegate: Rectangle {
-                        width: parent.width
-                        height: 30
-                        radius: 4
-                        property bool isSelected: libraryModel.sortField === modelData.field && libraryModel.sortAscending === modelData.asc
-                        color: isSelected ? Qt.rgba(Colors.accent.r, Colors.accent.g, Colors.accent.b, 0.15) : (itemMouse.containsMouse ? Colors.surfaceHover : "transparent")
+                        anchors.margins: 6
+                        color: albMouse.containsMouse ? Colors.surfaceHover : Colors.surfaceCard
+                        border.color: albMouse.containsMouse ? Colors.accent : Colors.borderSubtle
+                        radius: Theme.cornerRadiusMedium
 
                         MouseArea {
-                            id: itemMouse
+                            id: albMouse
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                libraryModel.setSort(modelData.field, modelData.asc);
-                                sortPopup.close();
+                                libraryModel.filterByAlbum(modelData.name);
+                                root.activeTab = "songs";
+                                if (window) window.activeLibraryTab = "songs";
                             }
                         }
 
-                        Item {
+                        Column {
                             anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
+                            anchors.margins: 8
+                            spacing: 8
 
-                            Text {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.label
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeCaption
-                                font.weight: isSelected ? Typography.weightBold : Typography.weightRegular
-                                color: isSelected ? Colors.accent : Colors.textPrimary
+                            // Square Album Artwork
+                            Rectangle {
+                                width: parent.width
+                                height: width
+                                radius: Theme.cornerRadiusSmall
+                                color: Colors.surfaceElevated
+                                clip: true
+
+                                Image {
+                                    anchors.fill: parent
+                                    source: (modelData.artworkPath && modelData.artworkPath.length > 0)
+                                            ? ("file:///" + modelData.artworkPath)
+                                            : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                    smooth: true
+                                    visible: status === Image.Ready
+                                }
+
+                                SoniqIcon {
+                                    anchors.centerIn: parent
+                                    name: "albums"
+                                    size: 36
+                                    color: Colors.textMuted
+                                    visible: !modelData.artworkPath || modelData.artworkPath.length === 0
+                                }
+
+                                // Quick Play Overlay on Hover
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: Qt.rgba(0, 0, 0, 0.4)
+                                    opacity: albMouse.containsMouse ? 1.0 : 0.0
+                                    Behavior on opacity { NumberAnimation { duration: Motion.durationFast } }
+
+                                    Rectangle {
+                                        width: 36
+                                        height: 36
+                                        radius: 18
+                                        color: Colors.accent
+                                        anchors.centerIn: parent
+
+                                        SoniqIcon {
+                                            anchors.centerIn: parent
+                                            name: "play"
+                                            size: 14
+                                            color: Colors.textInverse
+                                        }
+                                    }
+                                }
                             }
 
-                            Text {
-                                visible: isSelected
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "✓"
-                                font.pixelSize: 12
-                                color: Colors.accent
+                            // Album Title & Artist
+                            Column {
+                                width: parent.width
+                                spacing: 2
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.name
+                                    font.family: Typography.fontFamily
+                                    font.pixelSize: Typography.sizeBody
+                                    font.weight: Typography.weightMedium
+                                    color: Colors.textPrimary
+                                    elide: Text.ElideRight
+                                }
+
+                                Row {
+                                    width: parent.width
+                                    spacing: 4
+
+                                    Text {
+                                        text: modelData.artist
+                                        font.family: Typography.fontFamily
+                                        font.pixelSize: Typography.sizeCaption
+                                        color: Colors.textSecondary
+                                        elide: Text.ElideRight
+                                        width: Math.min(implicitWidth, parent.width - 36)
+                                    }
+
+                                    Text {
+                                        text: "• " + modelData.trackCount + "t"
+                                        font.family: Typography.monospaceFamily
+                                        font.pixelSize: Typography.sizeMicro
+                                        color: Colors.textMuted
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
-        }
 
-        // Track List View
-        ListView {
-            id: trackListView
-            width: parent.width
-            height: Math.max(100, parent.height - y)
-            clip: true
-            model: libraryModel
-            spacing: 2
-
-            delegate: SoniqTrackRow {
-                required property int index
-                required property var model
-                trackId: model.id !== undefined ? model.id : 0
-                trackNumber: index + 1
-                title: model.title
-                artist: model.artist
-                album: model.album
-                genre: model.genre !== undefined ? model.genre : ""
-                year: model.year !== undefined ? model.year : 0
-                filePath: model.filePath !== undefined ? model.filePath : ""
-                duration: model.durationFormatted
-                format: model.format
-                artworkPath: model.artworkPath ? model.artworkPath : ""
-                isFavorite: model.isFavorite
-                inPlaylist: libraryModel.activePlaylistId > 0
-                isPlaying: playbackController.trackFilePath === model.filePath && playbackController.isPlaying
-
-                onPlayClicked: playbackController.playFile(model.filePath)
-                onFavoriteClicked: libraryModel.toggleFavorite(index)
-                onEditTagsClicked: tagEditorDialog.openWith({
-                    id: model.id,
-                    title: model.title,
-                    artist: model.artist,
-                    album: model.album,
-                    genre: model.genre,
-                    year: model.year,
-                    filePath: model.filePath
-                })
-                onAddToPlaylistClicked: addToPlaylistDialog.openWith(model.id, model.title, model.artist)
-                onRemoveFromPlaylistClicked: libraryModel.removeTrackFromPlaylist(libraryModel.activePlaylistId, model.id)
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
             }
 
-            // Empty State
+            // === 2C. ARTISTS GRID VIEW ===
+            GridView {
+                id: artistGridView
+                anchors.fill: parent
+                visible: root.activeTab === "artists"
+                clip: true
+                cellWidth: Math.max(160, Math.floor(width / Math.max(2, Math.floor(width / 170))))
+                cellHeight: cellWidth + 40
+                model: root.activeTab === "artists" ? libraryModel.getArtists() : []
+
+                delegate: Item {
+                    width: artistGridView.cellWidth
+                    height: artistGridView.cellHeight
+
+                    SoniqCard {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        color: artCardMouse.containsMouse ? Colors.surfaceHover : Colors.surfaceCard
+                        border.color: artCardMouse.containsMouse ? Colors.accent : Colors.borderSubtle
+                        radius: Theme.cornerRadiusMedium
+
+                        MouseArea {
+                            id: artCardMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                libraryModel.filterByArtist(modelData.name);
+                                root.activeTab = "songs";
+                                if (window) window.activeLibraryTab = "songs";
+                            }
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 10
+                            width: parent.width - 20
+
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: Math.min(90, parent.width * 0.65)
+                                height: width
+                                radius: width / 2
+                                color: Colors.surfaceElevated
+                                border.color: Colors.borderSubtle
+                                border.width: 1
+
+                                SoniqIcon {
+                                    anchors.centerIn: parent
+                                    name: "artists"
+                                    size: 32
+                                    color: Colors.accent
+                                }
+                            }
+
+                            Text {
+                                text: modelData.name
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+
+                            Text {
+                                text: modelData.trackCount + " tracks • " + modelData.albumCount + " albums"
+                                font.family: Typography.monospaceFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                                horizontalAlignment: Text.AlignHCenter
+                                width: parent.width
+                            }
+                        }
+                    }
+                }
+
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            }
+
+            // === 2D. GENRES VIEW ===
+            GridView {
+                id: genreGridView
+                anchors.fill: parent
+                visible: root.activeTab === "genres"
+                clip: true
+                cellWidth: 200
+                cellHeight: 80
+                model: root.activeTab === "genres" ? libraryModel.getGenres() : []
+
+                delegate: Item {
+                    width: genreGridView.cellWidth
+                    height: genreGridView.cellHeight
+
+                    SoniqCard {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        color: genMouse.containsMouse ? Colors.surfaceHover : Colors.surfaceCard
+                        border.color: genMouse.containsMouse ? Colors.accent : Colors.borderSubtle
+                        radius: Theme.cornerRadiusMedium
+
+                        MouseArea {
+                            id: genMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                libraryModel.filterByGenre(modelData.name);
+                                root.activeTab = "songs";
+                                if (window) window.activeLibraryTab = "songs";
+                            }
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 12
+
+                            Rectangle {
+                                width: 44
+                                height: 44
+                                radius: 12
+                                color: Colors.accentMuted
+                                border.color: Colors.accent
+                                border.width: 1
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                SoniqIcon {
+                                    anchors.centerIn: parent
+                                    name: "genres"
+                                    size: 20
+                                    color: Colors.accent
+                                }
+                            }
+
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - 64
+                                spacing: 2
+
+                                Text {
+                                    text: modelData.name
+                                    font.family: Typography.fontFamily
+                                    font.pixelSize: Typography.sizeBody
+                                    font.weight: Typography.weightMedium
+                                    color: Colors.textPrimary
+                                    elide: Text.ElideRight
+                                    width: parent.width
+                                }
+
+                                Text {
+                                    text: modelData.trackCount + " tracks"
+                                    font.family: Typography.monospaceFamily
+                                    font.pixelSize: Typography.sizeCaption
+                                    color: Colors.textMuted
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            }
+
+            // === 2E. EMPTY STATE FOR SEARCH OR EMPTY LIBRARY ===
             Item {
                 anchors.centerIn: parent
-                visible: trackListView.count === 0
-                width: 320
+                width: parent.width - 60
                 height: 180
+                visible: (root.activeTab === "songs" && libraryModel.count === 0)
 
                 Column {
                     anchors.centerIn: parent
                     spacing: 12
-                    Text {
+
+                    SoniqIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "♫"
-                        font.pixelSize: 48
+                        name: "search"
+                        size: 36
                         color: Colors.textMuted
                     }
+
                     Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: "No Tracks in Library"
+                        text: searchInput.text.length > 0 ? "No Matching Tracks Found" : "No Tracks in this Selection"
                         font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeTitleMedium
+                        font.pixelSize: Typography.sizeTitleSmall
                         font.weight: Typography.weightBold
                         color: Colors.textPrimary
-                    }
-                    Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "Click 'Add Folder' above to scan audio files."
+                    }
+
+                    Text {
+                        text: searchInput.text.length > 0 ? "Check your spelling or try clearing the search query." : "Scan a folder to add music to your library."
                         font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeBody
+                        font.pixelSize: Typography.sizeCaption
                         color: Colors.textSecondary
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    SoniqButton {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        visible: searchInput.text.length > 0
+                        text: "Clear Search"
+                        onClicked: searchInput.text = ""
                     }
                 }
             }

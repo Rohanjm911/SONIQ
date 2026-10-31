@@ -84,6 +84,33 @@ public:
     bool removeTrackFromPlaylist(int64_t playlistId, int64_t trackId);
     std::vector<TrackRecord> getPlaylistTracks(int64_t playlistId);
 
+    // Aggregations and views
+    struct AlbumSummary {
+        std::string album;
+        std::string artist;
+        uint32_t trackCount{0};
+        std::string artworkPath;
+        uint32_t year{0};
+    };
+
+    struct ArtistSummary {
+        std::string artist;
+        uint32_t trackCount{0};
+        uint32_t albumCount{0};
+    };
+
+    struct GenreSummary {
+        std::string genre;
+        uint32_t trackCount{0};
+    };
+
+    std::vector<AlbumSummary> getDistinctAlbums();
+    std::vector<ArtistSummary> getDistinctArtists();
+    std::vector<GenreSummary> getDistinctGenres();
+    std::vector<TrackRecord> getTracksByAlbum(const std::string& album);
+    std::vector<TrackRecord> getTracksByArtist(const std::string& artist);
+    std::vector<TrackRecord> getTracksByGenre(const std::string& genre);
+
     // Settings persistence
     void setPreference(const std::string& key, const std::string& value);
     [[nodiscard]] std::string getPreference(const std::string& key, const std::string& defaultValue = "");

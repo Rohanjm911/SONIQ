@@ -3,17 +3,28 @@ import QtQuick.Controls.Basic
 import "../themes"
 import "../components"
 
-ScrollView {
+Item {
     id: root
 
-    clip: true
+    Flickable {
+        id: flickable
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: contentCol.implicitHeight + 64
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
 
-    Column {
-        width: Math.min(840, parent.width - 48)
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: 24
-        topPadding: 24
-        bottomPadding: 32
+        ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+        }
+
+        Column {
+            id: contentCol
+            width: Math.min(880, Math.max(480, flickable.width - 48))
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 24
+            spacing: 20
 
         // Header
         Column {
@@ -26,40 +37,42 @@ ScrollView {
                 color: Colors.textPrimary
             }
             Text {
-                text: "Configure audio output, theme, DSP processing, and local library preferences."
+                text: "Configure audio output, theme, playback engine, DSP, and local library preferences."
                 font.family: Typography.fontFamily
                 font.pixelSize: Typography.sizeBody
                 color: Colors.textSecondary
             }
         }
 
-        // Section: APPEARANCE
+        // Section 1: APPEARANCE
         Column {
             width: parent.width
-            spacing: 12
+            spacing: 8
 
             Text {
                 text: "APPEARANCE"
                 font.family: Typography.monospaceFamily
                 font.pixelSize: Typography.sizeMicro
                 font.weight: Typography.weightBold
+                font.letterSpacing: Typography.letterSpacingCaps
                 color: Colors.textMuted
                 leftPadding: 4
             }
 
             SoniqCard {
                 width: parent.width
-                height: 200
+                height: 190
+                color: Colors.surfaceCard
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 16
+                    spacing: 14
 
-                    // Theme selector
+                    // Theme Mode Toggle (Dark / Light)
                     Item {
                         width: parent.width
-                        height: 38
+                        height: 36
 
                         Column {
                             anchors.left: parent.left
@@ -109,6 +122,8 @@ ScrollView {
                         }
                     }
 
+                    Rectangle { width: parent.width; height: 1; color: Colors.borderSubtle }
+
                     // Accent Colors Presets
                     Item {
                         width: parent.width
@@ -127,7 +142,7 @@ ScrollView {
                                 color: Colors.textPrimary
                             }
                             Text {
-                                text: "Select from curated presets"
+                                text: "Vibrant Apple Music-inspired tint palettes"
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeMicro
                                 color: Colors.textMuted
@@ -141,14 +156,14 @@ ScrollView {
                             spacing: 8
 
                             Repeater {
-                                model: ["#FA2D48", "#00F0FF", "#3B82F6", "#10B981", "#A855F7", "#F59E0B", "#EC4899", "#E2E8F0"]
+                                model: ["#FA2D48", "#0A84FF", "#30D158", "#FF9F0A", "#AF52DE", "#00F0FF"]
 
                                 Rectangle {
-                                    width: 24
-                                    height: 24
-                                    radius: 12
+                                    width: 26
+                                    height: 26
+                                    radius: 13
                                     color: modelData
-                                    border.color: Colors.accent.toString().toUpperCase() === modelData.toUpperCase() ? "#FFFFFF" : "transparent"
+                                    border.color: Colors.accent.toString().toUpperCase() === modelData.toUpperCase() ? Colors.textPrimary : "transparent"
                                     border.width: 2
 
                                     MouseArea {
@@ -157,7 +172,6 @@ ScrollView {
                                         onClicked: {
                                             Colors.accent = modelData;
                                             settingsService.accentColor = modelData;
-                                            customHexInput.text = modelData;
                                         }
                                     }
                                 }
@@ -165,69 +179,43 @@ ScrollView {
                         }
                     }
 
-                    // Custom Accent Hex Input Row
+                    Rectangle { width: parent.width; height: 1; color: Colors.borderSubtle }
+
+                    // Reduced Motion Toggle
                     Item {
                         width: parent.width
-                        height: 32
+                        height: 36
 
-                        Text {
+                        Column {
                             anchors.left: parent.left
+                            anchors.right: motionSwitch.left
+                            anchors.rightMargin: 16
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "Custom Hex Accent"
-                            font.family: Typography.fontFamily
-                            font.pixelSize: Typography.sizeCaption
-                            color: Colors.textSecondary
+                            spacing: 2
+
+                            Text {
+                                text: "Reduce Motion"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeBody
+                                font.weight: Typography.weightMedium
+                                color: Colors.textPrimary
+                            }
+                            Text {
+                                text: "Minimize UI transitions and animations for accessibility or performance"
+                                font.family: Typography.fontFamily
+                                font.pixelSize: Typography.sizeMicro
+                                color: Colors.textMuted
+                            }
                         }
 
-                        Row {
+                        Switch {
+                            id: motionSwitch
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
-
-                            Rectangle {
-                                width: 22
-                                height: 22
-                                radius: 11
-                                color: Colors.accent
-                                border.color: Colors.borderSubtle
-                                border.width: 1
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Rectangle {
-                                width: 90
-                                height: 28
-                                radius: Theme.cornerRadiusSmall
-                                color: Colors.surfaceElevated
-                                border.color: customHexInput.activeFocus ? Colors.accent : Colors.borderSubtle
-                                border.width: 1
-
-                                TextInput {
-                                    id: customHexInput
-                                    anchors.fill: parent
-                                    anchors.margins: 5
-                                    font.family: Typography.monospaceFamily
-                                    font.pixelSize: Typography.sizeCaption
-                                    color: Colors.textPrimary
-                                    text: settingsService.accentColor || "#FA2D48"
-                                    selectByMouse: true
-                                    maximumLength: 7
-                                    onAccepted: applyHexBtn.clicked()
-                                }
-                            }
-
-                            SoniqButton {
-                                id: applyHexBtn
-                                variant: "secondary"
-                                text: "Apply"
-                                onClicked: {
-                                    var hex = customHexInput.text.trim();
-                                    if (hex.charAt(0) !== "#") hex = "#" + hex;
-                                    if (hex.length === 7) {
-                                        Colors.accent = hex;
-                                        settingsService.accentColor = hex;
-                                    }
-                                }
+                            checked: settingsService.reducedMotion
+                            onToggled: {
+                                settingsService.reducedMotion = checked;
+                                Motion.reducedMotion = checked;
                             }
                         }
                     }
@@ -235,28 +223,30 @@ ScrollView {
             }
         }
 
-        // Section: AUDIO OUTPUT
+        // Section 2: AUDIO OUTPUT & PLAYBACK
         Column {
             width: parent.width
-            spacing: 12
+            spacing: 8
 
             Text {
-                text: "AUDIO OUTPUT & BIT-PERFECT"
+                text: "AUDIO OUTPUT & PLAYBACK"
                 font.family: Typography.monospaceFamily
                 font.pixelSize: Typography.sizeMicro
                 font.weight: Typography.weightBold
+                font.letterSpacing: Typography.letterSpacingCaps
                 color: Colors.textMuted
                 leftPadding: 4
             }
 
             SoniqCard {
                 width: parent.width
-                height: 156
+                height: 210
+                color: Colors.surfaceCard
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
-                    spacing: 16
+                    spacing: 12
 
                     // WASAPI Exclusive Mode
                     Item {
@@ -294,89 +284,29 @@ ScrollView {
                         }
                     }
 
-                    // Hardware Buffer Size
+                    Rectangle { width: parent.width; height: 1; color: Colors.borderSubtle }
+
+                    // ReplayGain Loudness Normalization
                     Item {
                         width: parent.width
                         height: 40
 
                         Column {
                             anchors.left: parent.left
-                            anchors.right: bufCombo.left
+                            anchors.right: replaySwitch.left
                             anchors.rightMargin: 16
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
 
                             Text {
-                                text: "Hardware Buffer Size"
+                                text: "ReplayGain Loudness Normalization"
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeBody
                                 font.weight: Typography.weightMedium
                                 color: Colors.textPrimary
                             }
                             Text {
-                                text: "Lower values reduce latency; higher values protect against buffer underruns"
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeMicro
-                                color: Colors.textMuted
-                            }
-                        }
-
-                        ComboBox {
-                            id: bufCombo
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            model: ["512 frames (~11 ms)", "1024 frames (~23 ms)", "2048 frames (~46 ms)"]
-                            currentIndex: 1
-                        }
-                    }
-                }
-            }
-        }
-
-        // Section: LIBRARY MANAGEMENT
-        Column {
-            width: parent.width
-            spacing: 12
-
-            Text {
-                text: "LIBRARY MANAGEMENT"
-                font.family: Typography.monospaceFamily
-                font.pixelSize: Typography.sizeMicro
-                font.weight: Typography.weightBold
-                color: Colors.textMuted
-                leftPadding: 4
-            }
-
-            SoniqCard {
-                width: parent.width
-                height: 140
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 16
-
-                    // Single Folder Mode Toggle
-                    Item {
-                        width: parent.width
-                        height: 40
-
-                        Column {
-                            anchors.left: parent.left
-                            anchors.right: singleFolderSwitch.left
-                            anchors.rightMargin: 16
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
-
-                            Text {
-                                text: "Single Folder Mode"
-                                font.family: Typography.fontFamily
-                                font.pixelSize: Typography.sizeBody
-                                font.weight: Typography.weightMedium
-                                color: Colors.textPrimary
-                            }
-                            Text {
-                                text: "Keep only one active music folder in the library at a time (replaces on scan)"
+                                text: "Match perceived volume across tracks without compressing dynamic range"
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeMicro
                                 color: Colors.textMuted
@@ -384,95 +314,225 @@ ScrollView {
                         }
 
                         Switch {
-                            id: singleFolderSwitch
+                            id: replaySwitch
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            checked: libraryScanner.replaceOnScan
-                            onToggled: libraryScanner.replaceOnScan = checked
+                            checked: settingsService.replayGainEnabled
+                            onToggled: settingsService.replayGainEnabled = checked
                         }
                     }
 
-                    // Clear Library
+                    Rectangle { width: parent.width; height: 1; color: Colors.borderSubtle }
+
+                    // Gapless & Crossfading
                     Item {
                         width: parent.width
                         height: 40
 
                         Column {
                             anchors.left: parent.left
-                            anchors.right: clearLibBtn.left
+                            anchors.right: crossSwitch.left
                             anchors.rightMargin: 16
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
 
                             Text {
-                                text: "Purge Library"
+                                text: "Crossfade Playback (" + settingsService.crossfadeSeconds.toFixed(1) + "s)"
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeBody
                                 font.weight: Typography.weightMedium
                                 color: Colors.textPrimary
                             }
                             Text {
-                                text: "Remove all " + libraryModel.count + " tracks from local cache and start fresh"
+                                text: "Equal-power sine/cosine transition between consecutive tracks"
                                 font.family: Typography.fontFamily
                                 font.pixelSize: Typography.sizeMicro
                                 color: Colors.textMuted
                             }
                         }
 
-                        SoniqButton {
-                            id: clearLibBtn
+                        Switch {
+                            id: crossSwitch
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            variant: "secondary"
-                            text: "Clear Library"
-                            iconText: "🗑"
-                            onClicked: libraryModel.clearLibrary()
+                            checked: settingsService.crossfadeEnabled
+                            onToggled: settingsService.crossfadeEnabled = checked
                         }
                     }
                 }
             }
         }
 
-        // Section: ABOUT SONIQ
+        // Section 3: KEYBOARD SHORTCUTS
         Column {
             width: parent.width
-            spacing: 12
+            spacing: 8
 
             Text {
-                text: "ABOUT SONIQ"
+                text: "KEYBOARD SHORTCUTS"
                 font.family: Typography.monospaceFamily
                 font.pixelSize: Typography.sizeMicro
                 font.weight: Typography.weightBold
+                font.letterSpacing: Typography.letterSpacingCaps
                 color: Colors.textMuted
                 leftPadding: 4
             }
 
             SoniqCard {
                 width: parent.width
-                height: 100
+                height: 150
+                color: Colors.surfaceCard
+
+                Item {
+                    anchors.fill: parent
+                    anchors.margins: 16
+
+                    Column {
+                        anchors.left: parent.left
+                        anchors.right: parent.horizontalCenter
+                        anchors.rightMargin: 12
+                        spacing: 10
+
+                        Repeater {
+                            model: [
+                                { key: "Space", desc: "Toggle Play / Pause" },
+                                { key: "Left / Right", desc: "Seek Backward / Forward 5s" },
+                                { key: "Up / Down", desc: "Volume Up / Down" }
+                            ]
+
+                            Row {
+                                width: parent.width
+                                spacing: 12
+
+                                Rectangle {
+                                    width: 88
+                                    height: 24
+                                    radius: 4
+                                    color: Colors.surfaceElevated
+                                    border.color: Colors.borderSubtle
+                                    border.width: 1
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.key
+                                        font.family: Typography.monospaceFamily
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.weight: Typography.weightBold
+                                        color: Colors.textPrimary
+                                    }
+                                }
+
+                                Text {
+                                    text: modelData.desc
+                                    font.family: Typography.fontFamily
+                                    font.pixelSize: Typography.sizeCaption
+                                    color: Colors.textSecondary
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    elide: Text.ElideRight
+                                    width: parent.width - 100
+                                }
+                            }
+                        }
+                    }
+
+                    Column {
+                        anchors.left: parent.horizontalCenter
+                        anchors.leftMargin: 12
+                        anchors.right: parent.right
+                        spacing: 10
+
+                        Repeater {
+                            model: [
+                                { key: "F11", desc: "Toggle Fullscreen Mode" },
+                                { key: "Escape", desc: "Exit Fullscreen / Overlays" },
+                                { key: "M", desc: "Toggle Mute" }
+                            ]
+
+                            Row {
+                                width: parent.width
+                                spacing: 12
+
+                                Rectangle {
+                                    width: 88
+                                    height: 24
+                                    radius: 4
+                                    color: Colors.surfaceElevated
+                                    border.color: Colors.borderSubtle
+                                    border.width: 1
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.key
+                                        font.family: Typography.monospaceFamily
+                                        font.pixelSize: Typography.sizeCaption
+                                        font.weight: Typography.weightBold
+                                        color: Colors.textPrimary
+                                    }
+                                }
+
+                                Text {
+                                    text: modelData.desc
+                                    font.family: Typography.fontFamily
+                                    font.pixelSize: Typography.sizeCaption
+                                    color: Colors.textSecondary
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    elide: Text.ElideRight
+                                    width: parent.width - 100
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section 4: ABOUT SONIQ
+        Column {
+            width: parent.width
+            spacing: 8
+
+            Text {
+                text: "ABOUT SONIQ"
+                font.family: Typography.monospaceFamily
+                font.pixelSize: Typography.sizeMicro
+                font.weight: Typography.weightBold
+                font.letterSpacing: Typography.letterSpacingCaps
+                color: Colors.textMuted
+                leftPadding: 4
+            }
+
+            SoniqCard {
+                width: parent.width
+                height: 110
+                color: Colors.surfaceCard
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: 16
                     spacing: 6
 
-                    Text {
-                        text: "SONIQ — Pure Sound. Infinite Possibilities."
-                        font.family: Typography.fontFamily
-                        font.pixelSize: Typography.sizeBody
-                        font.weight: Typography.weightBold
-                        color: Colors.textPrimary
+                    Row {
+                        spacing: 8
+                        SoniqIcon { name: "songs"; size: 18; color: Colors.accent; anchors.verticalCenter: parent.verticalCenter }
+                        Text {
+                            text: "SONIQ — Pure Sound. Infinite Possibilities."
+                            font.family: Typography.fontFamily
+                            font.pixelSize: Typography.sizeBody
+                            font.weight: Typography.weightBold
+                            color: Colors.textPrimary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
 
                     Text {
-                        text: "Version 1.0.0 • Built with C++20, Qt 6.8.2, and Windows WASAPI"
+                        text: "Version 1.0.0 • Built with C++20, Qt 6.8.2, and Windows WASAPI Core Audio"
                         font.family: Typography.fontFamily
                         font.pixelSize: Typography.sizeCaption
                         color: Colors.textSecondary
                     }
 
                     Text {
-                        text: "Offline-first desktop architecture with zero cloud tracking and bit-perfect playback."
+                        text: "Offline-first desktop audiophile architecture with zero cloud telemetry and verified bit-perfect DAC hardware output."
                         font.family: Typography.fontFamily
                         font.pixelSize: Typography.sizeMicro
                         color: Colors.textMuted
@@ -481,4 +541,5 @@ ScrollView {
             }
         }
     }
+}
 }

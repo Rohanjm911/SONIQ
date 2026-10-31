@@ -31,6 +31,14 @@ class PlaybackController : public QObject {
     Q_PROPERTY(QString bitPerfectExplanation READ bitPerfectExplanation NOTIFY bitPerfectChanged)
     Q_PROPERTY(float peakLevelL READ peakLevelL NOTIFY visualizerChanged)
     Q_PROPERTY(float peakLevelR READ peakLevelR NOTIFY visualizerChanged)
+    Q_PROPERTY(QVariantList waveform READ waveform NOTIFY visualizerChanged)
+    Q_PROPERTY(QVariantList queueItems READ queueItems NOTIFY queueChanged)
+    Q_PROPERTY(int queueIndex READ queueIndex NOTIFY queueChanged)
+    Q_PROPERTY(int queueCount READ queueCount NOTIFY queueChanged)
+    Q_PROPERTY(QString lyricsText READ lyricsText NOTIFY lyricsChanged)
+    Q_PROPERTY(QVariantList syncedLyrics READ syncedLyrics NOTIFY lyricsChanged)
+    Q_PROPERTY(bool hasLyrics READ hasLyrics NOTIFY lyricsChanged)
+    Q_PROPERTY(bool isSyncedLyrics READ isSyncedLyrics NOTIFY lyricsChanged)
 
 public:
     explicit PlaybackController(audio::AudioPlaybackEngine& engine, QObject* parent = nullptr);
@@ -61,6 +69,16 @@ public:
 
     [[nodiscard]] float peakLevelL() const noexcept { return m_peakL.load(std::memory_order_relaxed); }
     [[nodiscard]] float peakLevelR() const noexcept { return m_peakR.load(std::memory_order_relaxed); }
+    [[nodiscard]] QVariantList waveform() const;
+
+    [[nodiscard]] QVariantList queueItems() const;
+    [[nodiscard]] int queueIndex() const;
+    [[nodiscard]] int queueCount() const;
+
+    [[nodiscard]] QString lyricsText() const { return m_lyricsText; }
+    [[nodiscard]] QVariantList syncedLyrics() const { return m_syncedLyrics; }
+    [[nodiscard]] bool hasLyrics() const noexcept { return m_hasLyrics; }
+    [[nodiscard]] bool isSyncedLyrics() const noexcept { return m_isSyncedLyrics; }
 
     void setLibraryModel(class LibraryModel* model) noexcept { m_libraryModel = model; }
     void updateCurrentTrackMetadata();
@@ -79,6 +97,13 @@ public slots:
     void setMuted(bool mute);
     void setRepeatMode(int mode);
 
+    // Playback Queue actions
+    void removeQueueItem(int index);
+    void moveQueueItem(int fromIndex, int toIndex);
+    void clearQueue();
+    void playQueueIndex(int index);
+    void enqueueTrack(const QString& filePath, bool playNext = false);
+
 signals:
     void stateChanged();
     void trackChanged();
@@ -90,9 +115,12 @@ signals:
     void shuffleChanged();
     void bitPerfectChanged();
     void visualizerChanged();
+    void queueChanged();
+    void lyricsChanged();
 
 private:
     static QString formatTime(double seconds);
+    void loadLyricsForTrack(const QString& filePath);
 
     audio::AudioPlaybackEngine& m_engine;
     class LibraryModel* m_libraryModel{nullptr};
@@ -107,6 +135,13 @@ private:
 
     std::atomic<float> m_peakL{0.0f};
     std::atomic<float> m_peakR{0.0f};
+    mutable std::mutex m_vizMutex;
+    std::vector<float> m_waveformSamples;
+
+    QString m_lyricsText;
+    QVariantList m_syncedLyrics;
+    bool m_hasLyrics{false};
+    bool m_isSyncedLyrics{false};
 };
 
 } // namespace soniq::services

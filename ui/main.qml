@@ -10,15 +10,20 @@ ApplicationWindow {
     id: window
 
     title: "SONIQ — Pure Sound. Infinite Possibilities."
-    width: Math.min(1200, Math.max(minimumWidth, Screen.desktopAvailableWidth ? Screen.desktopAvailableWidth * 0.82 : 1100))
-    height: Math.min(720, Math.max(minimumHeight, Screen.desktopAvailableHeight ? Screen.desktopAvailableHeight * 0.82 : 680))
-    minimumWidth: 840
-    minimumHeight: 520
+    width: Math.min(1240, Math.max(minimumWidth, Screen.desktopAvailableWidth ? Screen.desktopAvailableWidth * 0.84 : 1100))
+    height: Math.min(760, Math.max(minimumHeight, Screen.desktopAvailableHeight ? Screen.desktopAvailableHeight * 0.84 : 700))
+    minimumWidth: 860
+    minimumHeight: 540
     visible: true
     color: Colors.background
 
     property string activeScreen: "home"
+    property string activeLibraryTab: "songs"
     property bool queueOpen: false
+
+    function showToast(msg, icon) {
+        toast.show(msg, icon || "check");
+    }
 
     Component.onCompleted: {
         if (settingsService.accentColor && settingsService.accentColor.length > 0) {
@@ -27,6 +32,7 @@ ApplicationWindow {
         if (settingsService.themeMode && settingsService.themeMode.length > 0) {
             Colors.isDark = (settingsService.themeMode !== "Light");
         }
+        Motion.reducedMotion = settingsService.reducedMotion;
 
         if (Screen.desktopAvailableWidth > 0 && Screen.desktopAvailableHeight > 0) {
             if (window.width > Screen.desktopAvailableWidth) {
@@ -72,7 +78,7 @@ ApplicationWindow {
                     id: scannerBanner
                     visible: libraryScanner.isScanning
                     width: parent.width
-                    height: 36
+                    height: 38
                     color: Colors.accentMuted
                     border.color: Colors.accent
                     border.width: 1
@@ -81,22 +87,32 @@ ApplicationWindow {
                     Row {
                         anchors.centerIn: parent
                         spacing: 8
+
+                        SoniqIcon {
+                            name: "folder"
+                            size: 15
+                            color: Colors.accent
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
                         Text {
                             text: libraryScanner.totalCount > 0 ?
                                   ("Scanning music library... (" + libraryScanner.scannedCount + " / " + libraryScanner.totalCount + ")") :
                                   "Scanning music library..."
                             font.family: Typography.fontFamily
                             font.pixelSize: Typography.sizeCaption
+                            font.weight: Typography.weightMedium
                             color: Colors.textPrimary
+                            anchors.verticalCenter: parent.verticalCenter
                         }
                     }
                 }
 
-                // Screen Views
+                // Screen Views with subtle fade transition
                 Loader {
                     id: screenLoader
                     anchors.fill: parent
-                    anchors.topMargin: scannerBanner.visible ? 36 : 0
+                    anchors.topMargin: scannerBanner.visible ? 38 : 0
                     sourceComponent: {
                         if (window.activeScreen === "home") return homeComponent;
                         if (window.activeScreen === "songs") return songsComponent;
@@ -172,6 +188,41 @@ ApplicationWindow {
 
         // Keyboard Shortcuts
         Shortcut {
+            sequence: "Space"
+            onActivated: playbackController.togglePlayPause()
+        }
+
+        Shortcut {
+            sequence: "Left"
+            onActivated: playbackController.seek(Math.max(0.0, playbackController.position - 5.0))
+        }
+
+        Shortcut {
+            sequence: "Right"
+            onActivated: playbackController.seek(Math.min(playbackController.duration, playbackController.position + 5.0))
+        }
+
+        Shortcut {
+            sequence: "Up"
+            onActivated: playbackController.setVolume(Math.min(1.0, playbackController.volume + 0.05))
+        }
+
+        Shortcut {
+            sequence: "Down"
+            onActivated: playbackController.setVolume(Math.max(0.0, playbackController.volume - 0.05))
+        }
+
+        Shortcut {
+            sequence: "M"
+            onActivated: playbackController.setMuted(!playbackController.isMuted)
+        }
+
+        Shortcut {
+            sequence: "Ctrl+Q"
+            onActivated: window.queueOpen = !window.queueOpen
+        }
+
+        Shortcut {
             sequence: "F11"
             onActivated: {
                 if (window.visibility === Window.FullScreen) {
@@ -184,9 +235,12 @@ ApplicationWindow {
 
         Shortcut {
             sequence: "Escape"
-            enabled: window.visibility === Window.FullScreen
             onActivated: {
-                window.visibility = Window.Windowed;
+                if (window.queueOpen) {
+                    window.queueOpen = false;
+                } else if (window.visibility === Window.FullScreen) {
+                    window.visibility = Window.Windowed;
+                }
             }
         }
 
@@ -204,6 +258,15 @@ ApplicationWindow {
             }
         }
 
+        // Toast Micro-Notification Popup
+        SoniqToast {
+            id: toast
+            anchors.top: parent.top
+            anchors.topMargin: 16
+            anchors.horizontalCenter: parent.horizontalCenter
+            z: 100
+        }
+
         // Global Modal Dialogs
         CreatePlaylistDialog {
             id: createPlaylistDialog
@@ -217,7 +280,7 @@ ApplicationWindow {
             id: addToPlaylistDialog
         }
 
-        // Animated GIF Splash Screen
+        // Animated Splash Screen
         SplashOverlay {
             id: splashOverlay
         }
